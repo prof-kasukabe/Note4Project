@@ -36,6 +36,7 @@ interface SidebarProps {
   onDeleteDoc: (id: string) => void;
   onDuplicateDoc: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onManualSync?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -53,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteDoc,
   onDuplicateDoc,
   onToggleFavorite,
+  onManualSync,
 }) => {
   const t = translations[lang];
   const [searchQuery, setSearchQuery] = useState('');
@@ -352,11 +354,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Offline Status & Sync Footer */}
         <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900 text-xs">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-1.5">
+            <button
+              onClick={onManualSync}
+              title="Klik untuk sinkronkan dengan database server sekarang"
+              className="flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+            >
               {syncState.isOnline ? (
-                <Wifi size={13} className="text-emerald-500" />
+                <Wifi size={13} className="text-emerald-500 shrink-0" />
               ) : (
-                <WifiOff size={13} className="text-amber-500" />
+                <WifiOff size={13} className="text-amber-500 shrink-0" />
               )}
               <span className="text-[11px] font-medium">
                 {syncState.isOnline
@@ -365,14 +371,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : t.synced
                   : t.offline}
               </span>
-            </div>
+            </button>
 
-            {syncState.pendingCount > 0 && (
-              <span className="text-[10px] text-amber-500 flex items-center gap-1">
-                <RefreshCw size={10} className="animate-spin" />
-                {syncState.pendingCount} {t.pendingSync}
-              </span>
-            )}
+            <button
+              onClick={onManualSync}
+              className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw size={10} className={syncState.isSyncing ? 'animate-spin' : ''} />
+              <span>Sinkron</span>
+            </button>
           </div>
 
           {collaborators.length > 0 && (

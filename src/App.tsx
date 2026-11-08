@@ -118,24 +118,143 @@ export default function App() {
     localStorage.setItem('noverse_lang_v1', lang);
   }, [lang]);
 
-  // Initial canonical document sync from server REST API
-  useEffect(() => {
-    const fetchCanonicalDocs = async () => {
+  // Continuous background auto-sync polling to guarantee 100% database connectivity across devices
+  const lastRevisionRef = useRef<number>(0);
+  const syncDebounceTimerRef = useRef<number | null>(null);
+  const isActivelyEditingRef = useRef<boolean>(false);
+
+  // Trigger debounced or immediate server sync
+  const triggerServerSync = (
+    currentDocs: DocItem[],
+    mutation?: { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string },
+    immediate = false
+  ) => {
+    if (syncDebounceTimerRef.current) {
+      clearTimeout(syncDebounceTimerRef.current);
+      syncDebounceTimerRef.current = null;
+    }
+
+    const performSync = async () => {
       try {
-        const res = await fetch('/api/docs');
+        setSyncState((s) => ({ ...s, isSyncing: true }));
+        const payload = mutation
+          ? { mutation }
+          : { docs: currentDocs, replaceFull: true };
+
+        const res = await fetch('/api/docs/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.docs) && data.docs.length > 0) {
-            setDocs(data.docs);
-            saveStoredDocs(data.docs, false);
+          if (data.revision) {
+            lastRevisionRef.current = data.revision;
           }
+          setSyncState((s) => ({
+            ...s,
+            isOnline: true,
+            isSyncing: false,
+            lastSyncedAt: Date.now(),
+            pendingCount: 0,
+          }));
         }
-      } catch (err) {
-        console.warn('Server docs fetch offline/skipped:', err);
+      } catch {
+        setSyncState((s) => ({ ...s, isSyncing: false, isOnline: false }));
       }
     };
-    fetchCanonicalDocs();
-  }, []);
+
+    if (immediate) {
+      performSync();
+    } else {
+      syncDebounceTimerRef.current = window.setTimeout(performSync, 250);
+    }
+  };
+
+  const fetchAndReconcileServerDocs = async () => {
+    try {
+      const res = await fetch('/api/docs', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.docs) && data.docs.length > 0) {
+          // If first load on this client (lastRevisionRef is 0) or server revision is newer
+          if (lastRevisionRef.current === 0 || data.revision > lastRevisionRef.current) {
+            lastRevisionRef.current = data.revision;
+
+            setDocs((currentDocs) => {
+              // If user is currently actively editing active doc, protect that specific doc from text overwrite
+              if (isActivelyEditingRef.current && activeDocId) {
+                const activeLocal = currentDocs.find((d) => d.id === activeDocId);
+                const updatedList = data.docs.map((sDoc: DocItem) => {
+                  if (sDoc.id === activeDocId && activeLocal) {
+                    return { ...sDoc, content: activeLocal.content, title: activeLocal.title };
+                  }
+                  return sDoc;
+                });
+                saveStoredDocs(updatedList, false);
+                return updatedList;
+              }
+
+              // Otherwise adopt canonical server documents
+              saveStoredDocs(data.docs, false);
+              return data.docs;
+            });
+
+            setSyncState((prev) => ({
+              ...prev,
+              isOnline: true,
+              isSyncing: false,
+              lastSyncedAt: Date.now(),
+            }));
+          }
+        }
+      }
+    } catch {
+      // Offline / network fluctuation
+    }
+  };
+
+  // Continuous background auto-sync polling every 2 seconds
+  useEffect(() => {
+    fetchAndReconcileServerDocs();
+    const interval = setInterval(fetchAndReconcileServerDocs, 2000);
+    return () => {
+      clearInterval(interval);
+      if (syncDebounceTimerRef.current) clearTimeout(syncDebounceTimerRef.current);
+    };
+  }, [activeDocId]);
+
+  // Force instant manual synchronization
+  const handleManualSyncNow = async () => {
+    try {
+      setSyncState((s) => ({ ...s, isSyncing: true }));
+      const res = await fetch('/api/docs/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docs, replaceFull: true }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.docs)) {
+          setDocs(data.docs);
+          saveStoredDocs(data.docs, false);
+        }
+        if (data.revision) {
+          lastRevisionRef.current = data.revision;
+        }
+        setSyncState((s) => ({
+          ...s,
+          isOnline: true,
+          isSyncing: false,
+          lastSyncedAt: Date.now(),
+          pendingCount: 0,
+        }));
+      }
+    } catch {
+      setSyncState((s) => ({ ...s, isSyncing: false }));
+    }
+  };
 
   // Initialize CollabManager and Cross-Device WebSocket & Cross-Tab sync
   useEffect(() => {
@@ -229,7 +348,8 @@ export default function App() {
     updater: (prev: DocItem[]) => DocItem[], 
     broadcastDocId?: string, 
     changePayload?: unknown,
-    mutation?: { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string }
+    mutation?: { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string },
+    immediateSync = false
   ) => {
     setDocs((prev) => {
       const next = updater(prev);
@@ -251,14 +371,11 @@ export default function App() {
           } else if (mutation.type === 'delete' && mutation.docId) {
             collabManagerRef.current?.sendDocDelete(mutation.docId);
           }
-          // Server persistence backup
-          fetch('/api/docs/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mutation }),
-          }).catch(() => {});
         }
       }
+
+      // Automatically trigger server synchronization
+      triggerServerSync(next, mutation, immediateSync);
       return next;
     });
   };
@@ -343,7 +460,8 @@ export default function App() {
       (prev) => [newDoc, ...prev],
       newId,
       newDoc.content,
-      { type: 'upsert', doc: newDoc }
+      { type: 'upsert', doc: newDoc },
+      true
     );
     setActiveDocId(newId);
     setActiveView('editor');
@@ -357,7 +475,8 @@ export default function App() {
         (prev) => prev.filter((d) => d.id !== id && d.parentId !== id),
         id,
         undefined,
-        { type: 'delete', docId: id }
+        { type: 'delete', docId: id },
+        true
       );
       if (activeDocId === id) {
         const remaining = docs.filter((d) => d.id !== id && d.parentId !== id);
@@ -383,22 +502,30 @@ export default function App() {
       (prev) => [duplicate, ...prev],
       dupId,
       duplicate.content,
-      { type: 'upsert', doc: duplicate }
+      { type: 'upsert', doc: duplicate },
+      true
     );
     setActiveDocId(dupId);
   };
 
   const handleToggleFavorite = (id: string) => {
-    updateDocs((prev) =>
-      prev.map((d) => {
-        if (d.id === id) {
-          const updated = { ...d, isFavorite: !d.isFavorite };
-          return updated;
-        }
-        return d;
-      })
+    updateDocs(
+      (prev) =>
+        prev.map((d) => {
+          if (d.id === id) {
+            const updated = { ...d, isFavorite: !d.isFavorite };
+            return updated;
+          }
+          return d;
+        }),
+      undefined,
+      undefined,
+      undefined,
+      true
     );
   };
+
+  const activeTypingTimerRef = useRef<number | null>(null);
 
   const handleUpdateActiveDoc = (updated: Partial<DocItem>) => {
     if (!activeDocId) return;
@@ -406,11 +533,21 @@ export default function App() {
     if (!current) return;
     const merged = { ...current, ...updated, updatedAt: Date.now() };
 
+    const isTypingContent = updated.content !== undefined;
+    if (isTypingContent) {
+      isActivelyEditingRef.current = true;
+      if (activeTypingTimerRef.current) clearTimeout(activeTypingTimerRef.current);
+      activeTypingTimerRef.current = window.setTimeout(() => {
+        isActivelyEditingRef.current = false;
+      }, 1500);
+    }
+
     updateDocs(
       (prev) => prev.map((d) => (d.id === activeDocId ? merged : d)),
       activeDocId,
       updated.content,
-      { type: 'upsert', doc: merged }
+      { type: 'upsert', doc: merged },
+      !isTypingContent // Immediate sync for cover, icon, tags, status; debounced for typing
     );
   };
 
@@ -423,7 +560,8 @@ export default function App() {
       (prev) => prev.map((d) => (d.id === id ? merged : d)),
       id,
       updated.content,
-      { type: 'upsert', doc: merged }
+      { type: 'upsert', doc: merged },
+      true // Immediate sync for database view updates
     );
   };
 
@@ -546,6 +684,7 @@ export default function App() {
         onDeleteDoc={handleDeleteDoc}
         onDuplicateDoc={handleDuplicateDoc}
         onToggleFavorite={handleToggleFavorite}
+        onManualSync={handleManualSyncNow}
       />
 
       {/* Main Viewport Container */}
@@ -560,6 +699,9 @@ export default function App() {
           collaborators={collaborators}
           isVaultUnlocked={isVaultUnlocked}
           unreadRemindersCount={unreadRemindersCount}
+          isSyncing={syncState.isSyncing}
+          isOnline={syncState.isOnline}
+          onManualSync={handleManualSyncNow}
           onToggleMobileSidebar={() => setIsOpenMobileSidebar(!isOpenMobileSidebar)}
           onSelectDoc={handleSelectDoc}
           onSelectView={setActiveView}

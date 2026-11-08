@@ -222,17 +222,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             />
           )}
 
-          <div className="absolute bottom-3 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-lg text-xs text-white shadow-lg">
+          <div className="absolute bottom-3 right-4 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-lg text-xs text-white shadow-lg">
             <button
               onClick={() => setShowCoverModal(true)}
-              className="px-2.5 py-1 hover:bg-white/20 rounded-md flex items-center gap-1.5 transition-colors"
+              className="px-2.5 py-1 hover:bg-white/20 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ImageIcon size={13} />
               <span>{t.changeCover}</span>
             </button>
             <button
-              onClick={() => onUpdateDoc({ coverImage: undefined })}
-              className="px-2 py-1 hover:bg-rose-500/40 text-rose-300 rounded-md flex items-center gap-1 transition-colors"
+              onClick={() => onUpdateDoc({ coverImage: undefined, updatedAt: Date.now() })}
+              className="px-2 py-1 hover:bg-rose-500/40 text-rose-300 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Trash2 size={13} />
               <span className="hidden sm:inline">{t.removeCover}</span>
@@ -240,12 +240,12 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
         </div>
       ) : (
-        <div className="h-8 w-full flex items-center justify-end px-4 sm:px-8 group">
+        <div className="w-full flex items-center justify-end px-4 sm:px-8 pt-3">
           <button
             onClick={() => setShowCoverModal(true)}
-            className="text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md"
+            className="text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1.5 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-medium"
           >
-            <ImageIcon size={12} />
+            <ImageIcon size={13} />
             <span>{t.changeCover}</span>
           </button>
         </div>
@@ -264,34 +264,54 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       <div className="max-w-4xl w-full mx-auto px-4 sm:px-8 md:px-12 py-5 flex-1 flex flex-col">
         {/* Document Icon & Title Header */}
         <div className="mb-4">
-          <div className="relative inline-block mb-2">
-            <button
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              title={t.changeIcon}
-              className="text-4xl sm:text-5xl p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              {doc.icon || '📄'}
-            </button>
-
-            {showEmojiPicker && (
-              <div 
-                onMouseLeave={() => setShowEmojiPicker(false)}
-                className="absolute left-0 top-16 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl grid grid-cols-8 gap-1.5 z-40 text-xl"
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <div className="relative inline-block">
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                title={t.changeIcon}
+                className="text-4xl sm:text-5xl p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                {EMOJI_PRESETS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => {
-                      onUpdateDoc({ icon: emoji });
-                      setShowEmojiPicker(false);
-                    }}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
+                {doc.icon || '📄'}
+              </button>
+
+              {showEmojiPicker && (
+                <div 
+                  onMouseLeave={() => setShowEmojiPicker(false)}
+                  className="absolute left-0 top-16 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl grid grid-cols-8 gap-1.5 z-40 text-xl"
+                >
+                  {EMOJI_PRESETS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => {
+                        onUpdateDoc({ icon: emoji, updatedAt: Date.now() });
+                        setShowEmojiPicker(false);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Action Pill Buttons */}
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <span>{t.changeIcon}</span>
+              </button>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <button
+                onClick={() => setShowCoverModal(true)}
+                className="px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <ImageIcon size={13} className="text-indigo-500" />
+                <span>{doc.coverImage ? t.changeCover : 'Tambah Sampul / Latar'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Editable Document Title */}

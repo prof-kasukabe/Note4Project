@@ -1,0 +1,194 @@
+[
+  {
+    "id": "doc-roadmap",
+    "title": "Peta Jalan Produk 2026 (Sinkronisasi Terverifikasi)",
+    "icon": "🚀",
+    "coverImage": "/src/assets/images/cover_minimal_workspace_1794173839640.jpg",
+    "parentId": null,
+    "tags": [
+      "Strategi",
+      "Q1-2026",
+      "Engineering"
+    ],
+    "status": "in_progress",
+    "priority": "high",
+    "deadline": "2026-11-20",
+    "reminderTime": "2026-11-15T09:00:00.000Z",
+    "createdAt": 1793745014069,
+    "updatedAt": 1794177271289,
+    "isFavorite": true,
+    "isDatabase": true,
+    "content": "# Peta Jalan Terhubung"
+  },
+  {
+    "id": "doc-roadmap-arch",
+    "title": "Arsitektur Modular & Offline-First",
+    "icon": "⚙️",
+    "parentId": "doc-roadmap",
+    "tags": [
+      "Teknis",
+      "Arsitektur"
+    ],
+    "status": "completed",
+    "priority": "high",
+    "deadline": "2026-11-12",
+    "createdAt": 1793831414069,
+    "updatedAt": 1794162614069,
+    "content": "# ⚙️ Arsitektur Modular & Offline-First\n\nDokumen sub-halaman ini menjelaskan mekanisme penyimpanan lokal dan rekonsiliasi data.\n\n### Diagram Alur Data\n```\n[Input Pengguna] \n      ↓\n[Penyimpanan Lokal / Cache] ← (Bekerja 100% Offline)\n      ↓ (Ketika Online)\n[Antrean Sinkronisasi Cerdas]\n      ↓\n[WebSocket Broadcast Server] → [Klien Rekan / Multi-Tab]\n```\n\n### Spesifikasi Kunci:\n- **Penyimpanan Lokal**: Penyimpanan instan tanpa latensi jaringan.\n- **Deteksi Konektivitas**: Memantau event `online` & `offline` secara otomatis.\n- **Penanganan Konflik**: Strategi *Last-Write-Wins* dengan cap waktu presisi tinggi.\n"
+  },
+  {
+    "id": "doc-roadmap-security",
+    "title": "Audit Enkripsi End-to-End & Vault",
+    "icon": "🛡️",
+    "parentId": "doc-roadmap",
+    "tags": [
+      "Keamanan",
+      "Kriptografi"
+    ],
+    "status": "in_progress",
+    "priority": "high",
+    "deadline": "2026-11-25",
+    "createdAt": 1793917814069,
+    "updatedAt": 1794148214069,
+    "content": "# 🛡️ Audit Enkripsi End-to-End (E2EE)\n\nMenjamin kerahasiaan catatan sensitif tanpa mengekspos teks biasa ke server perantara.\n\n### Algoritma yang Digunakan:\n- **Cipher**: AES-GCM 256-bit dengan IV acak 96-bit per dokumen.\n- **Key Derivation**: PBKDF2 dengan 100.000 iterasi SHA-256 dan salt 128-bit unik.\n- **Isolasi Memori**: Kunci hanya berada di memori sesi aktif dan dapat dikunci kembali kapan saja.\n\n- [x] Verifikasi Web Crypto API compatibility\n- [x] Proteksi terhadap serangan timing & padding\n- [ ] Export file cadangan terenkripsi (.vault.json)\n"
+  },
+  {
+    "id": "doc-sprint",
+    "title": "Database Tugas & Sprint Mingguan",
+    "icon": "📋",
+    "coverImage": "/src/assets/images/cover_abstract_geometry_1794173840807.jpg",
+    "parentId": null,
+    "tags": [
+      "Sprint",
+      "Manajemen Tugas"
+    ],
+    "status": "in_progress",
+    "priority": "medium",
+    "deadline": "2026-11-18",
+    "reminderTime": "2026-11-10T14:00:00.000Z",
+    "createdAt": 1793917814069,
+    "updatedAt": 1794173414069,
+    "isFavorite": true,
+    "isDatabase": true,
+    "content": "# 📋 Sprint Mingguan & Database Pelacak Tugas\n\nGunakan tombol tampilan di bagian atas untuk beralih antara:\n- **Tabel**: Tinjau tenggat, tag, prioritas, dan status secara komprehensif.\n- **Papan Kanban**: Geser tugas antar kolom status.\n- **Kalender**: Pantau distribusi tenggat waktu tugas secara visual.\n\n---\n\n### Daftar Tugas Utama Sprint Ini:\n1. Selesaikan implementasi visualizer kalender terintegrasi\n2. Periksa performa render Markdown pada dokumen berukuran besar\n3. Validasi notifikasi pengingat berbasis waktu dengan audio chime\n"
+  },
+  {
+    "id": "task-1",
+    "title": "Implementasi Editor Markdown & Split Preview",
+    "icon": "📝",
+    "parentId": "doc-sprint",
+    "tags": [
+      "Frontend",
+      "UI"
+    ],
+    "status": "completed",
+    "priority": "high",
+    "deadline": "2026-11-09",
+    "createdAt": 1794004214069,
+    "updatedAt": 1794159014069,
+    "content": "Membuat editor fleksibel bergaya Notion dengan dukungan heading (#, ##, ###), todo checklist, kutipan, tabel, dan sintaks blok kode."
+  },
+  {
+    "id": "task-2",
+    "title": "Sinkronisasi Otomatis Antar Perangkat & Offline Queue",
+    "icon": "🔄",
+    "parentId": "doc-sprint",
+    "tags": [
+      "Backend",
+      "Sinkronisasi"
+    ],
+    "status": "in_progress",
+    "priority": "high",
+    "deadline": "2026-11-14",
+    "createdAt": 1794004214069,
+    "updatedAt": 1794166214069,
+    "content": "Menguji kemampuan antrean offline saat jaringan terputus dan sinkronisasi otomatis kembali saat terhubung."
+  },
+  {
+    "id": "task-3",
+    "title": "Integrasi Kalender & Penjadwalan Tenggat",
+    "icon": "📅",
+    "parentId": "doc-sprint",
+    "tags": [
+      "Fitur",
+      "Kalender"
+    ],
+    "status": "in_progress",
+    "priority": "medium",
+    "deadline": "2026-11-16",
+    "createdAt": 1794090614069,
+    "updatedAt": 1794173414069,
+    "content": "Tampilan kalender interaktif yang memetakan seluruh catatan bertenggat waktu ke dalam kisi bulanan yang jelas."
+  },
+  {
+    "id": "task-4",
+    "title": "Dasbor Metrik Produktivitas Visual",
+    "icon": "📊",
+    "parentId": "doc-sprint",
+    "tags": [
+      "Analitik",
+      "Dashboard"
+    ],
+    "status": "not_started",
+    "priority": "medium",
+    "deadline": "2026-11-22",
+    "createdAt": 1794090614069,
+    "updatedAt": 1794173414069,
+    "content": "Grafik visual rasio penyelesaian tugas, total kata yang diketik, dan heatmap produktivitas 7 hari terakhir."
+  },
+  {
+    "id": "doc-brain",
+    "title": "Second Brain & Basis Pengetahuan",
+    "icon": "💡",
+    "coverImage": "/src/assets/images/cover_nordic_nature_1794173840170.jpg",
+    "parentId": null,
+    "tags": [
+      "Pengetahuan",
+      "Wiki"
+    ],
+    "status": "not_started",
+    "priority": "low",
+    "createdAt": 1793658614069,
+    "updatedAt": 1794090614069,
+    "isFavorite": false,
+    "content": "# 💡 Second Brain & Basis Pengetahuan Pribadi\n\nKumpulan pemikiran, sintesis wawasan, dan catatan referensi jangka panjang.\n\n### Kategori Catatan:\n- 🧠 *Mental Models*: Cara pandang untuk memecahkan masalah kompleks\n- 📚 *Reading Notes*: Esensi dari buku-buku teknologi & produktivitas\n- 💻 *Code Snippets*: Pola desain perangkat lunak yang dapat digunakan ulang\n\n> *\"Pikiran Anda diciptakan untuk menghasilkan gagasan, bukan untuk menyimpannya.\"* — David Allen\n"
+  },
+  {
+    "id": "doc-meeting",
+    "title": "Catatan Rapat Sinkronisasi Tim & Action Items",
+    "icon": "☕",
+    "parentId": null,
+    "tags": [
+      "Rapat",
+      "Kolaborasi"
+    ],
+    "status": "in_progress",
+    "priority": "medium",
+    "deadline": "2026-11-11",
+    "reminderTime": "2026-11-08T22:40:14.069Z",
+    "createdAt": 1794090614070,
+    "updatedAt": 1794175214070,
+    "content": "# ☕ Rapat Sinkronisasi Mingguan Tim\n\n**Tanggal:** 11 November 2026  \n**Fasilitator:** Lead Product Designer  \n**Agenda:** Evaluasi peluncuran beta dan umpan balik pengguna awal.\n\n### 📌 Poin Pembahasan\n- Diskusi kecepatan respon editor ketika membuka dokumen berskala 50 halaman.\n- Pengujian audio chime untuk notifikasi pengingat waktu tenggat.\n- Pengaturan skema warna: Mode Terang, Mode Gelap, Mode OLED, dan Sepia.\n\n### 🎯 Tindak Lanjut (Action Items)\n- [ ] Buat dokumentasi panduan pintasan keyboard Markdown\n- [ ] Optimasi transisi animasi papan Kanban\n"
+  },
+  {
+    "id": "doc-secure",
+    "title": "Brankas Rahasia (Demo E2EE Terenkripsi)",
+    "icon": "🔒",
+    "parentId": null,
+    "tags": [
+      "Rahasia",
+      "Enkripsi"
+    ],
+    "status": "completed",
+    "priority": "high",
+    "createdAt": 1794004214070,
+    "updatedAt": 1794155414070,
+    "isEncrypted": true,
+    "encryptedPayload": {
+      "ciphertext": "0+XbY5i9qf8ZgTq8XwN8+G7h8sVf",
+      "iv": "xYz123456789",
+      "salt": "sAlT123456789012"
+    },
+    "content": "# 🔒 Catatan Rahasia yang Terenkripsi\n\nCatatan ini dilindungi dengan **End-to-End Encryption (E2EE)**.\nHanya pengguna dengan frasa sandi yang dapat membaca atau menyunting isi catatan ini.\n\nKunci sandi contoh untuk membuka demo ini: `noverse2026`\n"
+  }
+]

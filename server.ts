@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { INITIAL_DOCS } from './src/utils/seedData.ts';
@@ -11,6 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT) || 3000;
+const DB_FILE_PATH = path.resolve(__dirname, 'workspace-db.json');
 
 interface ClientInfo {
   ws: WebSocket;
@@ -23,8 +25,36 @@ interface ClientInfo {
 
 const clients = new Map<WebSocket, ClientInfo>();
 
-// Canonical Server-Side Document Store for instantaneous cross-device synchronization
-let canonicalDocs: DocItem[] = [...INITIAL_DOCS];
+// Load persistent database from disk or initialize with default seed
+function loadDatabaseFromDisk(): DocItem[] {
+  try {
+    if (fs.existsSync(DB_FILE_PATH)) {
+      const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.log(`> Loaded ${parsed.length} documents from persistent disk database`);
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Error loading database from disk:', err);
+  }
+  saveDatabaseToDisk(INITIAL_DOCS);
+  return [...INITIAL_DOCS];
+}
+
+function saveDatabaseToDisk(docs: DocItem[]) {
+  try {
+    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(docs, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving database to disk:', err);
+  }
+}
+
+// Authoritative Database state
+let canonicalDocs: DocItem[] = loadDatabaseFromDisk();
+let databaseRevision = 1;
+let lastDatabaseUpdate = Date.now();
 
 async function startServer() {
   const app = express();
@@ -87,52 +117,88 @@ async function startServer() {
       time: new Date().toISOString(),
       activePeers: clients.size,
       totalDocs: canonicalDocs.length,
+      revision: databaseRevision,
+      lastUpdated: lastDatabaseUpdate,
     });
   });
 
   // Get canonical documents
   app.get('/api/docs', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json({
       docs: canonicalDocs,
-      timestamp: Date.now(),
+      revision: databaseRevision,
+      lastUpdated: lastDatabaseUpdate,
     });
   });
 
   // Sync / bulk update documents across devices
   app.post('/api/docs/sync', (req, res) => {
     try {
-      const { docs, mutation } = req.body;
+      const { docs, mutation, replaceFull } = req.body;
+      let hasChanged = false;
+
       if (Array.isArray(docs)) {
-        canonicalDocs = docs;
-        broadcastAll({
-          type: 'workspace_full_sync',
-          docs: canonicalDocs,
-          timestamp: Date.now(),
-        });
+        if (replaceFull || docs.length > 0) {
+          canonicalDocs = docs;
+          hasChanged = true;
+        } else {
+          // Fallback map merge
+          const map = new Map<string, DocItem>();
+          canonicalDocs.forEach((d) => map.set(d.id, d));
+          docs.forEach((incoming: DocItem) => {
+            map.set(incoming.id, incoming);
+          });
+          canonicalDocs = Array.from(map.values());
+          hasChanged = true;
+        }
       } else if (mutation) {
         if (mutation.type === 'upsert' && mutation.doc) {
           const idx = canonicalDocs.findIndex((d) => d.id === mutation.doc.id);
           if (idx >= 0) {
-            canonicalDocs[idx] = { ...canonicalDocs[idx], ...mutation.doc };
+            canonicalDocs[idx] = { ...canonicalDocs[idx], ...mutation.doc, updatedAt: mutation.doc.updatedAt || Date.now() };
           } else {
-            canonicalDocs.unshift(mutation.doc);
+            canonicalDocs.unshift({ ...mutation.doc, updatedAt: mutation.doc.updatedAt || Date.now() });
           }
+          hasChanged = true;
           broadcastAll({
             type: 'workspace_doc_updated',
-            doc: mutation.doc,
+            doc: canonicalDocs[idx >= 0 ? idx : 0],
           });
         } else if (mutation.type === 'delete' && mutation.docId) {
           canonicalDocs = canonicalDocs.filter(
             (d) => d.id !== mutation.docId && d.parentId !== mutation.docId
           );
+          hasChanged = true;
           broadcastAll({
             type: 'workspace_doc_deleted',
             docId: mutation.docId,
           });
         }
       }
-      res.json({ success: true, count: canonicalDocs.length });
+
+      if (hasChanged) {
+        databaseRevision++;
+        lastDatabaseUpdate = Date.now();
+        saveDatabaseToDisk(canonicalDocs);
+        broadcastAll({
+          type: 'workspace_full_sync',
+          docs: canonicalDocs,
+          revision: databaseRevision,
+          lastUpdated: lastDatabaseUpdate,
+        });
+      }
+
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.json({
+        success: true,
+        count: canonicalDocs.length,
+        revision: databaseRevision,
+        lastUpdated: lastDatabaseUpdate,
+        docs: canonicalDocs,
+      });
     } catch (err) {
+      console.error('Sync error:', err);
       res.status(500).json({ error: 'Sync failed' });
     }
   });
@@ -152,6 +218,7 @@ async function startServer() {
     ws.send(JSON.stringify({
       type: 'workspace_full_sync',
       docs: canonicalDocs,
+      revision: databaseRevision,
       presence: getPresenceList(),
     }));
 
@@ -163,6 +230,7 @@ async function startServer() {
             ws.send(JSON.stringify({
               type: 'workspace_full_sync',
               docs: canonicalDocs,
+              revision: databaseRevision,
             }));
             break;
           }
@@ -173,7 +241,6 @@ async function startServer() {
             currentClient.color = message.color || currentClient.color;
             currentClient.docId = message.docId || '';
 
-            // Send presence list
             broadcastAll({
               type: 'presence_list',
               users: getPresenceList(),
@@ -203,14 +270,15 @@ async function startServer() {
           }
 
           case 'doc_change': {
-            // Update canonical state
             const target = canonicalDocs.find((d) => d.id === message.docId);
             if (target && typeof message.change === 'string') {
               target.content = message.change;
               target.updatedAt = Date.now();
+              databaseRevision++;
+              lastDatabaseUpdate = Date.now();
+              saveDatabaseToDisk(canonicalDocs);
             }
 
-            // Broadcast real-time delta immediately to other devices
             broadcastAll({
               type: 'doc_change',
               docId: message.docId,
@@ -225,15 +293,18 @@ async function startServer() {
             if (message.doc && message.doc.id) {
               const idx = canonicalDocs.findIndex((d) => d.id === message.doc.id);
               if (idx >= 0) {
-                canonicalDocs[idx] = { ...canonicalDocs[idx], ...message.doc };
+                canonicalDocs[idx] = { ...canonicalDocs[idx], ...message.doc, updatedAt: Date.now() };
               } else {
-                canonicalDocs.unshift(message.doc);
+                canonicalDocs.unshift({ ...message.doc, updatedAt: Date.now() });
               }
 
-              // Broadcast update to all other devices
+              databaseRevision++;
+              lastDatabaseUpdate = Date.now();
+              saveDatabaseToDisk(canonicalDocs);
+
               broadcastAll({
                 type: 'workspace_doc_updated',
-                doc: message.doc,
+                doc: canonicalDocs[idx >= 0 ? idx : 0],
                 userId: currentClient.userId,
               }, ws);
             }
@@ -245,6 +316,10 @@ async function startServer() {
               canonicalDocs = canonicalDocs.filter(
                 (d) => d.id !== message.docId && d.parentId !== message.docId
               );
+              databaseRevision++;
+              lastDatabaseUpdate = Date.now();
+              saveDatabaseToDisk(canonicalDocs);
+
               broadcastAll({
                 type: 'workspace_doc_deleted',
                 docId: message.docId,

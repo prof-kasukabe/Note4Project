@@ -25,6 +25,9 @@ interface TopBarProps {
   collaborators: Collaborator[];
   isVaultUnlocked: boolean;
   unreadRemindersCount: number;
+  isSyncing?: boolean;
+  isOnline?: boolean;
+  onManualSync?: () => void;
   onToggleMobileSidebar: () => void;
   onSelectDoc: (id: string) => void;
   onSelectView: (view: ActiveView) => void;
@@ -46,6 +49,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   collaborators,
   isVaultUnlocked,
   unreadRemindersCount,
+  isSyncing = false,
+  isOnline = true,
+  onManualSync,
   onToggleMobileSidebar,
   onSelectDoc,
   onSelectView,
@@ -131,6 +137,27 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Zone 2: Collaborators & Right Utility Controls */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Real-time Database Connectivity Indicator & Quick Sync Trigger */}
+        <button
+          onClick={onManualSync}
+          title="Status database terhubung. Klik untuk sinkronisasi paksa sekarang."
+          className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${
+            isOnline
+              ? isSyncing
+                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                : 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+              : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500'
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full shrink-0 ${isSyncing ? 'bg-amber-500 animate-spin' : isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+          <span className="whitespace-nowrap hidden sm:inline">
+            {isSyncing ? 'Menyinkronkan...' : isOnline ? 'Database Terhubung' : 'Offline'}
+          </span>
+          <span className="whitespace-nowrap sm:hidden">
+            {isSyncing ? 'Sync...' : isOnline ? 'Tersambung' : 'Offline'}
+          </span>
+        </button>
+
         {/* Real-time Collaboration Pill */}
         {collaborators.length > 0 && (
           <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/60 text-[11px] text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
