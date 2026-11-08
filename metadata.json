@@ -1,0 +1,6 @@
+{
+  "name": "Noverse Workspace",
+  "description": "Platform produktivitas dan ruang kerja kolaboratif modular berbasis hierarki catatan, integrasi database, Markdown, kolaborasi real-time, offline sync, enkripsi end-to-end, kalender tenggat, dan analitik.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

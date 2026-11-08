@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      window.addEventListener('error', function(e) {
+        var msg = (e && e.message) ? String(e.message) : '';
+        var file = (e && e.filename) ? String(e.filename) : '';
+        if (msg.includes('WebSocket') || msg.includes('@vite/client') || file.includes('@vite/client') || msg.includes('createWebSocketModuleRunnerTransport')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(e) {
+        var reason = (e && e.reason) ? String(e.reason) : '';
+        if (reason.includes('WebSocket') || reason.includes('@vite/client') || reason.includes('createWebSocketModuleRunnerTransport')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+    </script>
+    <title>Noverse Workspace</title>
+    <meta name="description" content="Platform produktivitas dan ruang kerja kolaboratif modular berbasis hierarki catatan, integrasi database, Markdown, kolaborasi real-time, offline sync, enkripsi end-to-end, kalender tenggat, dan analitik." />
+    <meta property="og:title" content="Noverse Workspace" />
+    <meta property="og:description" content="Platform produktivitas dan ruang kerja kolaboratif modular berbasis hierarki catatan, integrasi database, Markdown, kolaborasi real-time, offline sync, enkripsi end-to-end, kalender tenggat, dan analitik." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-500/20 selection:text-indigo-700 dark:bg-slate-950 dark:text-slate-100 dark:selection:bg-indigo-500/30 dark:selection:text-indigo-300">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
