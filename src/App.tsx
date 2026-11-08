@@ -32,6 +32,13 @@ import { DatabaseView } from './components/DatabaseView';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { EncryptionModal } from './components/EncryptionModal';
 import { NotificationModal } from './components/NotificationModal';
+import { 
+  FileText, 
+  Table, 
+  Kanban, 
+  Calendar as CalendarIcon, 
+  BarChart3 
+} from 'lucide-react';
 
 export default function App() {
   // Theme state
@@ -61,6 +68,9 @@ export default function App() {
 
   // Active view state
   const [activeView, setActiveView] = useState<ActiveView>('editor');
+
+  // Mobile sidebar drawer state
+  const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
 
   // Sync state
   const [syncState, setSyncState] = useState<SyncState>({
@@ -108,12 +118,55 @@ export default function App() {
     localStorage.setItem('noverse_lang_v1', lang);
   }, [lang]);
 
-  // Initialize CollabManager and Cross-Tab sync
+  // Initial canonical document sync from server REST API
+  useEffect(() => {
+    const fetchCanonicalDocs = async () => {
+      try {
+        const res = await fetch('/api/docs');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.docs) && data.docs.length > 0) {
+            setDocs(data.docs);
+            saveStoredDocs(data.docs, false);
+          }
+        }
+      } catch (err) {
+        console.warn('Server docs fetch offline/skipped:', err);
+      }
+    };
+    fetchCanonicalDocs();
+  }, []);
+
+  // Initialize CollabManager and Cross-Device WebSocket & Cross-Tab sync
   useEffect(() => {
     const collab = new CollabManager(userProfile);
     collabManagerRef.current = collab;
 
     collab.setCallbacks({
+      onWorkspaceSync: (serverDocs) => {
+        if (Array.isArray(serverDocs) && serverDocs.length > 0) {
+          setDocs(serverDocs);
+          saveStoredDocs(serverDocs, false);
+          setSyncState((prev) => ({ ...prev, isSyncing: false, lastSyncedAt: Date.now() }));
+        }
+      },
+      onDocUpdated: (updatedDoc) => {
+        setDocs((prev) => {
+          const idx = prev.findIndex((d) => d.id === updatedDoc.id);
+          const next = idx >= 0
+            ? prev.map((d) => (d.id === updatedDoc.id ? { ...d, ...updatedDoc } : d))
+            : [updatedDoc, ...prev];
+          saveStoredDocs(next, false);
+          return next;
+        });
+      },
+      onDocDeleted: (deletedDocId) => {
+        setDocs((prev) => {
+          const next = prev.filter((d) => d.id !== deletedDocId && d.parentId !== deletedDocId);
+          saveStoredDocs(next, false);
+          return next;
+        });
+      },
       onPresenceChange: (users) => {
         setCollaborators(users);
       },
@@ -142,9 +195,10 @@ export default function App() {
     const handleOnline = () => {
       setSyncState((prev) => ({ ...prev, isOnline: true, isSyncing: true }));
       clearSyncQueue();
+      collab.requestInitialSync();
       setTimeout(() => {
         setSyncState((prev) => ({ ...prev, isSyncing: false, pendingCount: 0, lastSyncedAt: Date.now() }));
-      }, 1000);
+      }, 800);
     };
 
     const handleOffline = () => {
@@ -170,8 +224,13 @@ export default function App() {
     }
   }, [activeDocId]);
 
-  // Save docs to localStorage & handle offline queue
-  const updateDocs = (updater: (prev: DocItem[]) => DocItem[], broadcastDocId?: string, changePayload?: unknown) => {
+  // Save docs to localStorage & broadcast to all devices via WebSocket & server REST API
+  const updateDocs = (
+    updater: (prev: DocItem[]) => DocItem[], 
+    broadcastDocId?: string, 
+    changePayload?: unknown,
+    mutation?: { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string }
+  ) => {
     setDocs((prev) => {
       const next = updater(prev);
       saveStoredDocs(next);
@@ -182,8 +241,23 @@ export default function App() {
           docId: broadcastDocId || '',
         });
         setSyncState((s) => ({ ...s, pendingCount: s.pendingCount + 1 }));
-      } else if (broadcastDocId && changePayload !== undefined) {
-        collabManagerRef.current?.sendDocChange(broadcastDocId, changePayload);
+      } else {
+        if (broadcastDocId && changePayload !== undefined) {
+          collabManagerRef.current?.sendDocChange(broadcastDocId, changePayload);
+        }
+        if (mutation) {
+          if (mutation.type === 'upsert' && mutation.doc) {
+            collabManagerRef.current?.sendDocUpsert(mutation.doc);
+          } else if (mutation.type === 'delete' && mutation.docId) {
+            collabManagerRef.current?.sendDocDelete(mutation.docId);
+          }
+          // Server persistence backup
+          fetch('/api/docs/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mutation }),
+          }).catch(() => {});
+        }
       }
       return next;
     });
@@ -246,6 +320,7 @@ export default function App() {
   const handleSelectDoc = (id: string) => {
     setActiveDocId(id);
     setActiveView('editor');
+    setIsOpenMobileSidebar(false);
   };
 
   const handleCreateDoc = (parentId: string | null = null, datePreset?: string) => {
@@ -264,15 +339,26 @@ export default function App() {
       updatedAt: Date.now(),
     };
 
-    updateDocs((prev) => [newDoc, ...prev]);
+    updateDocs(
+      (prev) => [newDoc, ...prev],
+      newId,
+      newDoc.content,
+      { type: 'upsert', doc: newDoc }
+    );
     setActiveDocId(newId);
     setActiveView('editor');
+    setIsOpenMobileSidebar(false);
   };
 
   const handleDeleteDoc = (id: string) => {
     const confirmMsg = translations[lang].confirmDelete;
     if (window.confirm(confirmMsg)) {
-      updateDocs((prev) => prev.filter((d) => d.id !== id && d.parentId !== id));
+      updateDocs(
+        (prev) => prev.filter((d) => d.id !== id && d.parentId !== id),
+        id,
+        undefined,
+        { type: 'delete', docId: id }
+      );
       if (activeDocId === id) {
         const remaining = docs.filter((d) => d.id !== id && d.parentId !== id);
         setActiveDocId(remaining[0]?.id || null);
@@ -293,43 +379,61 @@ export default function App() {
       updatedAt: Date.now(),
     };
 
-    updateDocs((prev) => [duplicate, ...prev]);
+    updateDocs(
+      (prev) => [duplicate, ...prev],
+      dupId,
+      duplicate.content,
+      { type: 'upsert', doc: duplicate }
+    );
     setActiveDocId(dupId);
   };
 
   const handleToggleFavorite = (id: string) => {
     updateDocs((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, isFavorite: !d.isFavorite } : d))
+      prev.map((d) => {
+        if (d.id === id) {
+          const updated = { ...d, isFavorite: !d.isFavorite };
+          return updated;
+        }
+        return d;
+      })
     );
   };
 
   const handleUpdateActiveDoc = (updated: Partial<DocItem>) => {
     if (!activeDocId) return;
+    const current = docs.find((d) => d.id === activeDocId);
+    if (!current) return;
+    const merged = { ...current, ...updated, updatedAt: Date.now() };
+
     updateDocs(
-      (prev) => prev.map((d) => (d.id === activeDocId ? { ...d, ...updated } : d)),
+      (prev) => prev.map((d) => (d.id === activeDocId ? merged : d)),
       activeDocId,
-      updated.content
+      updated.content,
+      { type: 'upsert', doc: merged }
     );
   };
 
   const handleUpdateDocById = (id: string, updated: Partial<DocItem>) => {
+    const current = docs.find((d) => d.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updated, updatedAt: Date.now() };
+
     updateDocs(
-      (prev) => prev.map((d) => (d.id === id ? { ...d, ...updated } : d)),
+      (prev) => prev.map((d) => (d.id === id ? merged : d)),
       id,
-      updated.content
+      updated.content,
+      { type: 'upsert', doc: merged }
     );
   };
 
   // E2EE Vault unlock
   const handleUnlockVault = async (passphrase: string): Promise<boolean> => {
     try {
-      // Test decrypting sample or checking passphrase length
       if (passphrase.length < 4) return false;
-
       setIsVaultUnlocked(true);
       setVaultPassphrase(passphrase);
 
-      // If active doc was encrypted demo, ensure content is revealed
       if (activeDoc?.isEncrypted) {
         updateDocs((prev) =>
           prev.map((d) => {
@@ -408,11 +512,16 @@ export default function App() {
         if (Array.isArray(parsed)) {
           setDocs(parsed);
           saveStoredDocs(parsed);
-          alert('Cadangan workspace berhasil diimpor!');
+          fetch('/api/docs/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: parsed }),
+          }).catch(() => {});
+          alert('Cadangan workspace berhasil diimpor & disinkronkan!');
         } else {
           alert('Format berkas cadangan tidak sesuai.');
         }
-      } catch (err) {
+      } catch {
         alert('Gagal membaca berkas JSON.');
       }
     };
@@ -421,7 +530,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-slate-950 font-sans">
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation (with Mobile Drawer Slide-over) */}
       <Sidebar
         docs={docs}
         activeDocId={activeDocId}
@@ -429,6 +538,8 @@ export default function App() {
         lang={lang}
         syncState={syncState}
         collaborators={collaborators}
+        isOpenMobile={isOpenMobileSidebar}
+        onCloseMobile={() => setIsOpenMobileSidebar(false)}
         onSelectDoc={handleSelectDoc}
         onSelectView={setActiveView}
         onCreateDoc={handleCreateDoc}
@@ -438,7 +549,7 @@ export default function App() {
       />
 
       {/* Main Viewport Container */}
-      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden pb-14 md:pb-0">
         {/* Top Header Bar */}
         <TopBar
           activeDoc={activeDoc}
@@ -449,6 +560,7 @@ export default function App() {
           collaborators={collaborators}
           isVaultUnlocked={isVaultUnlocked}
           unreadRemindersCount={unreadRemindersCount}
+          onToggleMobileSidebar={() => setIsOpenMobileSidebar(!isOpenMobileSidebar)}
           onSelectDoc={handleSelectDoc}
           onSelectView={setActiveView}
           onToggleTheme={setTheme}
@@ -521,6 +633,72 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (< md) for fast view switching */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-30 flex items-center justify-around px-2">
+        <button
+          onClick={() => {
+            setActiveView('editor');
+            if (!activeDocId && docs[0]) setActiveDocId(docs[0].id);
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'editor'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <FileText size={17} />
+          <span>Catatan</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('database_table')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'database_table'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <Table size={17} />
+          <span>Tabel</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('database_board')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'database_board'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <Kanban size={17} />
+          <span>Kanban</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('database_calendar')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'database_calendar'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <CalendarIcon size={17} />
+          <span>Kalender</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('analytics')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'analytics'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <BarChart3 size={17} />
+          <span>Analitik</span>
+        </button>
+      </nav>
 
       {/* Encryption & Vault Modal */}
       <EncryptionModal

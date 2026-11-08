@@ -3,6 +3,8 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
+import { INITIAL_DOCS } from './src/utils/seedData.ts';
+import { DocItem } from './src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,10 +18,13 @@ interface ClientInfo {
   name: string;
   color: string;
   docId: string;
-  cursor?: { blockId: string; offset: number };
+  cursor?: { blockIndex?: number; text?: string };
 }
 
 const clients = new Map<WebSocket, ClientInfo>();
+
+// Canonical Server-Side Document Store for instantaneous cross-device synchronization
+let canonicalDocs: DocItem[] = [...INITIAL_DOCS];
 
 async function startServer() {
   const app = express();
@@ -41,20 +46,100 @@ async function startServer() {
     }
   });
 
-  app.use(express.json({ limit: '20mb' }));
+  app.use(express.json({ limit: '50mb' }));
 
-  // API endpoints
+  // Broadcast helper to all connected devices/clients
+  const broadcastAll = (payload: unknown, excludeWs?: WebSocket) => {
+    const data = JSON.stringify(payload);
+    clients.forEach((_info, clientWs) => {
+      if (clientWs.readyState === WebSocket.OPEN) {
+        if (excludeWs && clientWs === excludeWs) return;
+        clientWs.send(data);
+      }
+    });
+  };
+
+  // Broadcast to peers in specific document room
+  const broadcastToRoom = (docId: string, payload: unknown, excludeWs?: WebSocket) => {
+    const data = JSON.stringify(payload);
+    clients.forEach((client, clientWs) => {
+      if (clientWs.readyState === WebSocket.OPEN) {
+        if (excludeWs && clientWs === excludeWs) return;
+        if (client.docId === docId || !docId) {
+          clientWs.send(data);
+        }
+      }
+    });
+  };
+
+  const getPresenceList = () => {
+    const list: Array<{ userId: string; name: string; color: string; docId: string }> = [];
+    clients.forEach((c) => {
+      list.push({ userId: c.userId, name: c.name, color: c.color, docId: c.docId });
+    });
+    return list;
+  };
+
+  // REST API Endpoints for cross-device sync & offline reconciliation
   app.get('/api/health', (_req, res) => {
     res.json({
       status: 'ok',
       time: new Date().toISOString(),
       activePeers: clients.size,
+      totalDocs: canonicalDocs.length,
     });
+  });
+
+  // Get canonical documents
+  app.get('/api/docs', (_req, res) => {
+    res.json({
+      docs: canonicalDocs,
+      timestamp: Date.now(),
+    });
+  });
+
+  // Sync / bulk update documents across devices
+  app.post('/api/docs/sync', (req, res) => {
+    try {
+      const { docs, mutation } = req.body;
+      if (Array.isArray(docs)) {
+        canonicalDocs = docs;
+        broadcastAll({
+          type: 'workspace_full_sync',
+          docs: canonicalDocs,
+          timestamp: Date.now(),
+        });
+      } else if (mutation) {
+        if (mutation.type === 'upsert' && mutation.doc) {
+          const idx = canonicalDocs.findIndex((d) => d.id === mutation.doc.id);
+          if (idx >= 0) {
+            canonicalDocs[idx] = { ...canonicalDocs[idx], ...mutation.doc };
+          } else {
+            canonicalDocs.unshift(mutation.doc);
+          }
+          broadcastAll({
+            type: 'workspace_doc_updated',
+            doc: mutation.doc,
+          });
+        } else if (mutation.type === 'delete' && mutation.docId) {
+          canonicalDocs = canonicalDocs.filter(
+            (d) => d.id !== mutation.docId && d.parentId !== mutation.docId
+          );
+          broadcastAll({
+            type: 'workspace_doc_deleted',
+            docId: mutation.docId,
+          });
+        }
+      }
+      res.json({ success: true, count: canonicalDocs.length });
+    } catch (err) {
+      res.status(500).json({ error: 'Sync failed' });
+    }
   });
 
   // Real-time WebSocket management
   wss.on('connection', (ws: WebSocket) => {
-    let currentClient: ClientInfo = {
+    const currentClient: ClientInfo = {
       ws,
       userId: `user_${Math.random().toString(36).substring(2, 9)}`,
       name: 'Collaborator',
@@ -63,64 +148,44 @@ async function startServer() {
     };
     clients.set(ws, currentClient);
 
-    const broadcastToRoom = (docId: string, payload: unknown, excludeSelf = true) => {
-      const data = JSON.stringify(payload);
-      clients.forEach((client, clientWs) => {
-        if (clientWs.readyState === WebSocket.OPEN) {
-          if (excludeSelf && clientWs === ws) return;
-          if (client.docId === docId || !docId) {
-            clientWs.send(data);
-          }
-        }
-      });
-    };
-
-    const getRoomPresence = (docId: string) => {
-      const list: Array<{ userId: string; name: string; color: string; docId: string }> = [];
-      clients.forEach((c) => {
-        if (c.docId === docId || !docId) {
-          list.push({ userId: c.userId, name: c.name, color: c.color, docId: c.docId });
-        }
-      });
-      return list;
-    };
+    // Send immediate initial sync of all documents & presence to new device
+    ws.send(JSON.stringify({
+      type: 'workspace_full_sync',
+      docs: canonicalDocs,
+      presence: getPresenceList(),
+    }));
 
     ws.on('message', (raw) => {
       try {
         const message = JSON.parse(raw.toString());
         switch (message.type) {
+          case 'init_sync': {
+            ws.send(JSON.stringify({
+              type: 'workspace_full_sync',
+              docs: canonicalDocs,
+            }));
+            break;
+          }
+
           case 'join': {
             currentClient.userId = message.userId || currentClient.userId;
             currentClient.name = message.name || currentClient.name;
             currentClient.color = message.color || currentClient.color;
             currentClient.docId = message.docId || '';
 
-            // Send presence list back to joiner
-            ws.send(JSON.stringify({
+            // Send presence list
+            broadcastAll({
               type: 'presence_list',
-              docId: currentClient.docId,
-              users: getRoomPresence(currentClient.docId),
-            }));
-
-            // Broadcast join to others in doc
-            broadcastToRoom(currentClient.docId, {
-              type: 'user_joined',
-              user: {
-                userId: currentClient.userId,
-                name: currentClient.name,
-                color: currentClient.color,
-                docId: currentClient.docId,
-              },
+              users: getPresenceList(),
             });
             break;
           }
 
           case 'leave': {
-            const oldDoc = currentClient.docId;
             currentClient.docId = '';
-            broadcastToRoom(oldDoc, {
-              type: 'user_left',
-              userId: currentClient.userId,
+            broadcastAll({
+              type: 'presence_list',
+              users: getPresenceList(),
             });
             break;
           }
@@ -133,19 +198,59 @@ async function startServer() {
               name: currentClient.name,
               color: currentClient.color,
               cursor: message.cursor,
-            });
+            }, ws);
             break;
           }
 
           case 'doc_change': {
-            // Broadcast document delta / block update to peers
-            broadcastToRoom(message.docId, {
+            // Update canonical state
+            const target = canonicalDocs.find((d) => d.id === message.docId);
+            if (target && typeof message.change === 'string') {
+              target.content = message.change;
+              target.updatedAt = Date.now();
+            }
+
+            // Broadcast real-time delta immediately to other devices
+            broadcastAll({
               type: 'doc_change',
               docId: message.docId,
               change: message.change,
               userId: currentClient.userId,
               timestamp: Date.now(),
-            });
+            }, ws);
+            break;
+          }
+
+          case 'doc_upsert': {
+            if (message.doc && message.doc.id) {
+              const idx = canonicalDocs.findIndex((d) => d.id === message.doc.id);
+              if (idx >= 0) {
+                canonicalDocs[idx] = { ...canonicalDocs[idx], ...message.doc };
+              } else {
+                canonicalDocs.unshift(message.doc);
+              }
+
+              // Broadcast update to all other devices
+              broadcastAll({
+                type: 'workspace_doc_updated',
+                doc: message.doc,
+                userId: currentClient.userId,
+              }, ws);
+            }
+            break;
+          }
+
+          case 'doc_delete': {
+            if (message.docId) {
+              canonicalDocs = canonicalDocs.filter(
+                (d) => d.id !== message.docId && d.parentId !== message.docId
+              );
+              broadcastAll({
+                type: 'workspace_doc_deleted',
+                docId: message.docId,
+                userId: currentClient.userId,
+              }, ws);
+            }
             break;
           }
 
@@ -160,14 +265,11 @@ async function startServer() {
     });
 
     ws.on('close', () => {
-      const { docId, userId } = currentClient;
       clients.delete(ws);
-      if (docId) {
-        broadcastToRoom(docId, {
-          type: 'user_left',
-          userId,
-        });
-      }
+      broadcastAll({
+        type: 'presence_list',
+        users: getPresenceList(),
+      });
     });
   });
 

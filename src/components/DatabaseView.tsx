@@ -280,13 +280,13 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
 
         {/* KANBAN BOARD VIEW */}
         {currentMode === 'board' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start min-w-[800px]">
+          <div className="flex md:grid md:grid-cols-4 gap-4 items-start overflow-x-auto pb-4 snap-x">
             {STATUS_COLUMNS.map((col) => {
               const columnDocs = filteredDocs.filter((d) => d.status === col.key);
               return (
                 <div
                   key={col.key}
-                  className="bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 flex flex-col min-h-[500px]"
+                  className="bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3 flex flex-col min-h-[460px] min-w-[260px] md:min-w-0 w-72 md:w-auto shrink-0 md:shrink snap-start shadow-xs"
                 >
                   {/* Column Header */}
                   <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-200 dark:border-slate-800">
@@ -307,7 +307,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                       <div
                         key={item.id}
                         onClick={() => onSelectDoc(item.id)}
-                        className="p-3 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-lg shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
+                        className="p-3 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-1.5 min-w-0">
@@ -317,7 +317,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                             </span>
                           </div>
                           <span
-                            className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                            className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
                               item.priority === 'high'
                                 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400'
                                 : item.priority === 'medium'
@@ -333,7 +333,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                         {item.tags.length > 0 && (
                           <div className="flex items-center gap-1 flex-wrap my-1.5">
                             {item.tags.map((tg) => (
-                              <span key={tg} className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                              <span key={tg} className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                                 {tg}
                               </span>
                             ))}
@@ -370,9 +370,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
 
                   {/* Add card into this column */}
                   <button
-                    onClick={() => {
-                      onCreateDoc();
-                    }}
+                    onClick={() => onCreateDoc()}
                     className="mt-2 w-full py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-500 hover:text-indigo-600 hover:border-indigo-400 flex items-center justify-center gap-1 transition-colors"
                   >
                     <Plus size={13} />
@@ -386,16 +384,16 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
 
         {/* CALENDAR VIEW */}
         {currentMode === 'calendar' && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-5 shadow-xs overflow-x-auto">
             {/* Calendar Month Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                   {monthName} {year}
                 </h3>
                 <button
                   onClick={setToday}
-                  className="px-2.5 py-1 text-xs font-semibold rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-colors"
+                  className="px-2 sm:px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-colors"
                 >
                   {t.today}
                 </button>
@@ -404,14 +402,14 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
               <div className="flex items-center gap-1">
                 <button
                   onClick={prevMonth}
-                  className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                   title={t.prevMonth}
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <button
                   onClick={nextMonth}
-                  className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                   title={t.nextMonth}
                 >
                   <ChevronRight size={16} />
@@ -420,7 +418,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
             </div>
 
             {/* Day Header row */}
-            <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 pb-2 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 pb-2 text-center text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider min-w-[320px]">
               {dayHeaders.map((dh) => (
                 <div key={dh} className="py-1">
                   {dh}
@@ -429,12 +427,12 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
             </div>
 
             {/* Month Day Grid */}
-            <div className="grid grid-cols-7 border-l border-t border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-7 border-l border-t border-slate-200 dark:border-slate-800 min-w-[320px]">
               {/* Empty leading day slots */}
               {Array.from({ length: firstDayIndex }).map((_, i) => (
                 <div
                   key={`empty-${i}`}
-                  className="h-28 border-r border-b border-slate-200/60 dark:border-slate-800/60 bg-slate-50/40 dark:bg-slate-950/30 p-1"
+                  className="min-h-[64px] sm:h-28 border-r border-b border-slate-200/60 dark:border-slate-800/60 bg-slate-50/40 dark:bg-slate-950/30 p-1"
                 />
               ))}
 
@@ -450,13 +448,13 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                   <div
                     key={dateStr}
                     onClick={() => onCreateDoc(dateStr)}
-                    className={`h-28 border-r border-b border-slate-200/80 dark:border-slate-800 p-1.5 flex flex-col justify-between group hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-colors cursor-pointer ${
+                    className={`min-h-[64px] sm:h-28 border-r border-b border-slate-200/80 dark:border-slate-800 p-1 sm:p-1.5 flex flex-col justify-between group hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-colors cursor-pointer ${
                       isToday ? 'bg-indigo-50/50 dark:bg-indigo-950/30' : ''
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                        className={`text-[10px] sm:text-xs font-semibold px-1 sm:px-1.5 py-0.5 rounded ${
                           isToday
                             ? 'bg-indigo-600 text-white'
                             : 'text-slate-700 dark:text-slate-300'
@@ -467,14 +465,14 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
 
                       <button
                         title="Tambah tugas di tanggal ini"
-                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-indigo-600"
+                        className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-indigo-600 hidden sm:block"
                       >
                         <Plus size={12} />
                       </button>
                     </div>
 
                     {/* Events / tasks for day */}
-                    <div className="space-y-1 overflow-y-auto max-h-18 mt-1">
+                    <div className="space-y-0.5 sm:space-y-1 overflow-y-auto max-h-12 sm:max-h-18 mt-0.5">
                       {dayDocs.map((d) => (
                         <div
                           key={d.id}
@@ -482,13 +480,13 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                             e.stopPropagation();
                             onSelectDoc(d.id);
                           }}
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-medium truncate flex items-center gap-1 border shadow-2xs ${
+                          className={`px-1 sm:px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-medium truncate flex items-center gap-1 border shadow-2xs ${
                             d.status === 'completed'
                               ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                               : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
                           }`}
                         >
-                          <span>{d.icon || '📄'}</span>
+                          <span className="hidden sm:inline">{d.icon || '📄'}</span>
                           <span className="truncate">{d.title || t.emptyTitle}</span>
                         </div>
                       ))}

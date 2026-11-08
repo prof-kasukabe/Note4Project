@@ -10,11 +10,8 @@ import {
   Globe, 
   Download, 
   Upload, 
-  Share2, 
   ChevronRight, 
-  CheckCircle,
-  Clock,
-  Sparkles
+  Menu
 } from 'lucide-react';
 import { DocItem, ActiveView, ThemeMode, Language, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
@@ -28,6 +25,7 @@ interface TopBarProps {
   collaborators: Collaborator[];
   isVaultUnlocked: boolean;
   unreadRemindersCount: number;
+  onToggleMobileSidebar: () => void;
   onSelectDoc: (id: string) => void;
   onSelectView: (view: ActiveView) => void;
   onToggleTheme: (theme: ThemeMode) => void;
@@ -48,6 +46,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   collaborators,
   isVaultUnlocked,
   unreadRemindersCount,
+  onToggleMobileSidebar,
   onSelectDoc,
   onSelectView,
   onToggleTheme,
@@ -83,12 +82,21 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="h-13 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 flex items-center justify-between gap-4 shrink-0 select-none z-20">
-      {/* Zone 1: Breadcrumb Trail */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 min-w-0">
+    <header className="h-14 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-3 shrink-0 select-none z-20">
+      {/* Zone 1: Mobile Hamburger & Breadcrumb Trail */}
+      <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
+        {/* Mobile menu trigger */}
+        <button
+          onClick={onToggleMobileSidebar}
+          className="md:hidden p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+          title="Buka Menu"
+        >
+          <Menu size={18} />
+        </button>
+
         <span 
           onClick={() => onSelectView('database_table')}
-          className="hover:text-slate-900 dark:hover:text-white cursor-pointer font-medium whitespace-nowrap shrink-0"
+          className="hover:text-slate-900 dark:hover:text-white cursor-pointer font-medium whitespace-nowrap shrink-0 hidden sm:inline"
         >
           {t.appName}
         </span>
@@ -99,7 +107,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               <ChevronRight size={12} className="shrink-0 text-slate-300 dark:text-slate-600" />
               <button
                 onClick={() => onSelectDoc(crumb.id)}
-                className={`truncate max-w-[120px] md:max-w-[200px] hover:text-slate-900 dark:hover:text-white ${
+                className={`truncate max-w-[90px] sm:max-w-[140px] md:max-w-[200px] hover:text-slate-900 dark:hover:text-white ${
                   idx === breadcrumbs.length - 1 ? 'font-semibold text-slate-900 dark:text-slate-100' : ''
                 }`}
               >
@@ -110,8 +118,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           ))
         ) : (
           <>
-            <ChevronRight size={12} className="shrink-0 text-slate-300 dark:text-slate-600" />
-            <span className="font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+            <ChevronRight size={12} className="shrink-0 text-slate-300 dark:text-slate-600 hidden sm:inline" />
+            <span className="font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap truncate max-w-[120px] sm:max-w-none">
               {activeView === 'database_table' && t.tableView}
               {activeView === 'database_board' && t.boardView}
               {activeView === 'database_calendar' && t.calendarView}
@@ -122,10 +130,10 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Zone 2: Collaborators & Right Utility Controls */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Real-time Collaboration Pill */}
         {collaborators.length > 0 && (
-          <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/60 text-[11px] text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/60 text-[11px] text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>{collaborators.length} {t.collaborators.toLowerCase()}</span>
           </div>
@@ -135,7 +143,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={onOpenEncryptionModal}
           title={isVaultUnlocked ? t.e2eeUnlocked : t.e2eeLocked}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             isVaultUnlocked
               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
               : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
@@ -149,7 +157,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={onOpenNotificationModal}
           title={t.reminders}
-          className="relative p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="relative p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <Bell size={16} />
           {unreadRemindersCount > 0 && (
@@ -164,7 +172,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
             title={t.theme}
-            className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             {theme === 'light' && <Sun size={16} />}
             {theme === 'dark' && <Moon size={16} />}
@@ -175,7 +183,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {showThemeMenu && (
             <div 
               onMouseLeave={() => setShowThemeMenu(false)}
-              className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50 text-xs text-slate-700 dark:text-slate-200"
+              className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 z-50 text-xs text-slate-700 dark:text-slate-200 animate-in fade-in"
             >
               <button
                 onClick={() => { onToggleTheme('light'); setShowThemeMenu(false); }}
@@ -213,7 +221,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={() => onToggleLanguage(lang === 'id' ? 'en' : 'id')}
           title={lang === 'id' ? 'Beralih ke English' : 'Switch to Bahasa Indonesia'}
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <Globe size={14} />
           <span className="uppercase">{lang}</span>
@@ -224,7 +232,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={() => setShowExportMenu(!showExportMenu)}
             title="Export / Import"
-            className="p-1.5 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <Download size={16} />
           </button>
@@ -232,7 +240,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {showExportMenu && (
             <div 
               onMouseLeave={() => setShowExportMenu(false)}
-              className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50 text-xs text-slate-700 dark:text-slate-200"
+              className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 z-50 text-xs text-slate-700 dark:text-slate-200 animate-in fade-in"
             >
               <button
                 onClick={() => { onExportMarkdown(); setShowExportMenu(false); }}

@@ -1,10 +1,13 @@
-import { Collaborator } from '../types';
+import { Collaborator, DocItem } from '../types';
 
 export interface CollabEventCallbacks {
   onPresenceChange?: (users: Collaborator[]) => void;
   onDocChange?: (docId: string, change: unknown, userId: string) => void;
   onCursorChange?: (userId: string, name: string, color: string, cursor: { blockIndex?: number; text?: string }) => void;
   onStatusChange?: (connected: boolean) => void;
+  onWorkspaceSync?: (docs: DocItem[]) => void;
+  onDocUpdated?: (doc: DocItem, userId?: string) => void;
+  onDocDeleted?: (docId: string, userId?: string) => void;
 }
 
 export class CollabManager {
@@ -39,12 +42,36 @@ export class CollabManager {
     }
   }
 
+  public requestInitialSync() {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'init_sync' }));
+    }
+  }
+
   public sendDocChange(docId: string, change: unknown) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({
         type: 'doc_change',
         docId,
         change,
+      }));
+    }
+  }
+
+  public sendDocUpsert(doc: DocItem) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        type: 'doc_upsert',
+        doc,
+      }));
+    }
+  }
+
+  public sendDocDelete(docId: string) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        type: 'doc_delete',
+        docId,
       }));
     }
   }
@@ -71,7 +98,7 @@ export class CollabManager {
         this.isConnected = true;
         this.callbacks.onStatusChange?.(true);
 
-        // Join current document room
+        // Join current document room and request full canonical sync
         this.ws?.send(JSON.stringify({
           type: 'join',
           docId: this.currentDocId,
@@ -79,6 +106,8 @@ export class CollabManager {
           name: this.userProfile.name,
           color: this.userProfile.color,
         }));
+
+        this.requestInitialSync();
 
         // Start ping heartbeat
         if (this.pingTimer) clearInterval(this.pingTimer);
@@ -93,6 +122,28 @@ export class CollabManager {
         try {
           const msg = JSON.parse(event.data);
           switch (msg.type) {
+            case 'workspace_full_sync':
+              if (Array.isArray(msg.docs)) {
+                this.callbacks.onWorkspaceSync?.(msg.docs);
+              }
+              if (Array.isArray(msg.presence)) {
+                this.presenceList = msg.presence;
+                this.callbacks.onPresenceChange?.(this.presenceList);
+              }
+              break;
+
+            case 'workspace_doc_updated':
+              if (msg.doc && msg.userId !== this.userProfile.userId) {
+                this.callbacks.onDocUpdated?.(msg.doc, msg.userId);
+              }
+              break;
+
+            case 'workspace_doc_deleted':
+              if (msg.docId && msg.userId !== this.userProfile.userId) {
+                this.callbacks.onDocDeleted?.(msg.docId, msg.userId);
+              }
+              break;
+
             case 'presence_list':
               this.presenceList = msg.users || [];
               this.callbacks.onPresenceChange?.(this.presenceList);
@@ -131,12 +182,12 @@ export class CollabManager {
         this.isConnected = false;
         this.callbacks.onStatusChange?.(false);
         if (this.pingTimer) clearInterval(this.pingTimer);
-        // Retry connection in 3 seconds
+        // Retry connection in 2.5 seconds
         if (!this.reconnectTimer) {
           this.reconnectTimer = window.setTimeout(() => {
             this.reconnectTimer = null;
             this.connect();
-          }, 3000);
+          }, 2500);
         }
       };
 
