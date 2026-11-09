@@ -1,4 +1,4 @@
-import { DocItem } from '../types';
+import type { DocItem } from '../types/index.ts';
 
 export const COVER_PRESETS = [
   {

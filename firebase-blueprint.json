@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "document": {
+      "title": "Document",
+      "description": "A workspace document, note, or database record item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier of the document" },
+        "title": { "type": "string", "description": "Title of the document" },
+        "icon": { "type": "string", "description": "Emoji or icon identifier" },
+        "coverImage": { "type": "string", "description": "Cover banner image URL or gradient" },
+        "parentId": { "type": "string", "description": "Parent document ID for nested hierarchy" },
+        "tags": { "type": "array", "description": "Array of string tags" },
+        "status": {
+          "type": "string",
+          "enum": ["not_started", "in_progress", "completed", "archived"],
+          "description": "Progress state"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "description": "Task urgency"
+        },
+        "deadline": { "type": "string", "description": "ISO date deadline" },
+        "reminderTime": { "type": "string", "description": "ISO timestamp for scheduled reminder" },
+        "reminderNotified": { "type": "boolean", "description": "Whether notification chime fired" },
+        "createdAt": { "type": "number", "description": "Creation timestamp in milliseconds" },
+        "updatedAt": { "type": "number", "description": "Last modification timestamp in milliseconds" },
+        "isFavorite": { "type": "boolean", "description": "Pinned/starred flag" },
+        "isDatabase": { "type": "boolean", "description": "Flag indicating root database collection" },
+        "isEncrypted": { "type": "boolean", "description": "End-to-End Encryption flag" },
+        "encryptedPayload": { "type": "object", "description": "AES-GCM ciphertext, iv, and salt" },
+        "content": { "type": "string", "description": "Markdown body content" }
+      },
+      "required": ["id", "title", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/documents/{documentId}": {
+      "schema": { "$ref": "#/entities/document" },
+      "description": "Canonical persistent workspace documents accessible and synchronizable in real-time across all user devices"
+    }
+  }
+}

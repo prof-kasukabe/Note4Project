@@ -24,6 +24,12 @@ import {
   playReminderChime, 
   sendBrowserNotification 
 } from './utils/notifications';
+import { 
+  subscribeToWorkspace, 
+  saveDocToFirestore, 
+  deleteDocFromFirestore, 
+  seedFirestoreIfEmpty 
+} from './services/firestoreSync';
 import { encryptText, decryptText } from './utils/crypto';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -123,7 +129,7 @@ export default function App() {
   const syncDebounceTimerRef = useRef<number | null>(null);
   const isActivelyEditingRef = useRef<boolean>(false);
 
-  // Trigger debounced or immediate server sync
+  // Trigger real-time Firestore sync & server backup
   const triggerServerSync = (
     currentDocs: DocItem[],
     mutation?: { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string },
@@ -137,6 +143,21 @@ export default function App() {
     const performSync = async () => {
       try {
         setSyncState((s) => ({ ...s, isSyncing: true }));
+
+        // 1. Sync to Cloud Firestore in real-time
+        if (mutation) {
+          if (mutation.type === 'upsert' && mutation.doc) {
+            saveDocToFirestore(mutation.doc).catch((e) => console.warn('Firestore upsert:', e));
+          } else if (mutation.type === 'delete' && mutation.docId) {
+            deleteDocFromFirestore(mutation.docId).catch((e) => console.warn('Firestore delete:', e));
+          }
+        } else if (currentDocs.length > 0) {
+          currentDocs.forEach((d) => {
+            saveDocToFirestore(d).catch(() => {});
+          });
+        }
+
+        // 2. Server persistence backup & broadcast
         const payload = mutation
           ? { mutation }
           : { docs: currentDocs, replaceFull: true };
@@ -152,14 +173,15 @@ export default function App() {
           if (data.revision) {
             lastRevisionRef.current = data.revision;
           }
-          setSyncState((s) => ({
-            ...s,
-            isOnline: true,
-            isSyncing: false,
-            lastSyncedAt: Date.now(),
-            pendingCount: 0,
-          }));
         }
+
+        setSyncState((s) => ({
+          ...s,
+          isOnline: true,
+          isSyncing: false,
+          lastSyncedAt: Date.now(),
+          pendingCount: 0,
+        }));
       } catch {
         setSyncState((s) => ({ ...s, isSyncing: false, isOnline: false }));
       }
@@ -172,63 +194,95 @@ export default function App() {
     }
   };
 
-  const fetchAndReconcileServerDocs = async () => {
-    try {
-      const res = await fetch('/api/docs', { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.docs) && data.docs.length > 0) {
-          // If first load on this client (lastRevisionRef is 0) or server revision is newer
-          if (lastRevisionRef.current === 0 || data.revision > lastRevisionRef.current) {
-            lastRevisionRef.current = data.revision;
+  // Real-time Cloud Firestore subscription + background server polling
+  useEffect(() => {
+    // 1. Initialize Firestore seed if collection is empty
+    seedFirestoreIfEmpty(INITIAL_DOCS);
 
-            setDocs((currentDocs) => {
-              // If user is currently actively editing active doc, protect that specific doc from text overwrite
-              if (isActivelyEditingRef.current && activeDocId) {
-                const activeLocal = currentDocs.find((d) => d.id === activeDocId);
-                const updatedList = data.docs.map((sDoc: DocItem) => {
-                  if (sDoc.id === activeDocId && activeLocal) {
-                    return { ...sDoc, content: activeLocal.content, title: activeLocal.title };
-                  }
-                  return sDoc;
-                });
-                saveStoredDocs(updatedList, false);
-                return updatedList;
-              }
+    // 2. Subscribe to real-time Cloud Firestore updates (active across all devices simultaneously)
+    const unsubscribeFirestore = subscribeToWorkspace(
+      (remoteDocs) => {
+        if (Array.isArray(remoteDocs) && remoteDocs.length > 0) {
+          setDocs((currentDocs) => {
+            if (isActivelyEditingRef.current && activeDocId) {
+              const activeLocal = currentDocs.find((d) => d.id === activeDocId);
+              const merged = remoteDocs.map((r) => {
+                if (r.id === activeDocId && activeLocal) {
+                  return { ...r, content: activeLocal.content, title: activeLocal.title };
+                }
+                return r;
+              });
+              saveStoredDocs(merged, false);
+              return merged;
+            }
+            saveStoredDocs(remoteDocs, false);
+            return remoteDocs;
+          });
 
-              // Otherwise adopt canonical server documents
-              saveStoredDocs(data.docs, false);
-              return data.docs;
-            });
+          setSyncState((prev) => ({
+            ...prev,
+            isOnline: true,
+            isSyncing: false,
+            lastSyncedAt: Date.now(),
+            pendingCount: 0,
+          }));
+        }
+      },
+      (err) => {
+        console.warn('Firestore listener fallback notice:', err);
+      }
+    );
 
-            setSyncState((prev) => ({
-              ...prev,
-              isOnline: true,
-              isSyncing: false,
-              lastSyncedAt: Date.now(),
-            }));
+    // 3. Continuous server fallback polling every 2.5 seconds
+    const fetchServerFallback = async () => {
+      try {
+        const res = await fetch('/api/docs', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.docs) && data.docs.length > 0) {
+            if (lastRevisionRef.current === 0 || data.revision > lastRevisionRef.current) {
+              lastRevisionRef.current = data.revision;
+              setDocs((currentDocs) => {
+                if (isActivelyEditingRef.current && activeDocId) {
+                  const activeLocal = currentDocs.find((d) => d.id === activeDocId);
+                  const updatedList = data.docs.map((sDoc: DocItem) => {
+                    if (sDoc.id === activeDocId && activeLocal) {
+                      return { ...sDoc, content: activeLocal.content, title: activeLocal.title };
+                    }
+                    return sDoc;
+                  });
+                  saveStoredDocs(updatedList, false);
+                  return updatedList;
+                }
+                saveStoredDocs(data.docs, false);
+                return data.docs;
+              });
+            }
           }
         }
-      }
-    } catch {
-      // Offline / network fluctuation
-    }
-  };
+      } catch {}
+    };
 
-  // Continuous background auto-sync polling every 2 seconds
-  useEffect(() => {
-    fetchAndReconcileServerDocs();
-    const interval = setInterval(fetchAndReconcileServerDocs, 2000);
+    fetchServerFallback();
+    const interval = setInterval(fetchServerFallback, 2500);
+
     return () => {
+      unsubscribeFirestore();
       clearInterval(interval);
       if (syncDebounceTimerRef.current) clearTimeout(syncDebounceTimerRef.current);
     };
   }, [activeDocId]);
 
-  // Force instant manual synchronization
+  // Force instant manual synchronization across Firestore & local server
   const handleManualSyncNow = async () => {
     try {
       setSyncState((s) => ({ ...s, isSyncing: true }));
+      
+      // Push all documents to Firestore
+      const firestorePromises = docs.map((d) => saveDocToFirestore(d));
+      await Promise.allSettled(firestorePromises);
+
+      // Push to server API
       const res = await fetch('/api/docs/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,21 +290,18 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.docs)) {
-          setDocs(data.docs);
-          saveStoredDocs(data.docs, false);
-        }
         if (data.revision) {
           lastRevisionRef.current = data.revision;
         }
-        setSyncState((s) => ({
-          ...s,
-          isOnline: true,
-          isSyncing: false,
-          lastSyncedAt: Date.now(),
-          pendingCount: 0,
-        }));
       }
+
+      setSyncState((s) => ({
+        ...s,
+        isOnline: true,
+        isSyncing: false,
+        lastSyncedAt: Date.now(),
+        pendingCount: 0,
+      }));
     } catch {
       setSyncState((s) => ({ ...s, isSyncing: false }));
     }

@@ -5,7 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { INITIAL_DOCS } from './src/utils/seedData.ts';
-import { DocItem } from './src/types/index.ts';
+import type { DocItem } from './src/types/index.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
