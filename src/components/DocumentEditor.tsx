@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Image as ImageIcon, 
   Trash2, 
@@ -24,9 +24,6 @@ import {
   SplitSquareVertical, 
   X,
   AlertCircle,
-  FileText,
-  Terminal,
-  Table as TableIcon,
   History
 } from 'lucide-react';
 import { DocItem, DocStatus, DocPriority, Language, Collaborator } from '../types';
@@ -209,11 +206,26 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const isDocumentLocked = doc.isEncrypted && !isVaultUnlocked;
   const parsedBlocks = parseMarkdownToBlocks(doc.content || '');
 
+  const getStatusBadgeStyle = (status: DocStatus) => {
+    switch (status) {
+      case 'in_progress':
+        return 'bg-[#EBF0F5] text-[#5D748B] dark:bg-[#242A32] dark:text-[#9AB3CC]';
+      case 'completed':
+        return 'bg-[#EDF3EE] text-[#567561] dark:bg-[#1E2B22] dark:text-[#93BFA1]';
+      case 'not_started':
+        return 'bg-[#F4F4F0] text-[#777973] dark:bg-[#252522] dark:text-[#A1A29B]';
+      case 'archived':
+        return 'bg-[#F4F4F0] text-[#A1A29B]';
+      default:
+        return 'bg-[#F4F4F0] text-[#777973]';
+    }
+  };
+
   return (
-    <div className="flex-1 h-screen overflow-y-auto bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col relative select-text">
+    <div className="flex-1 h-screen overflow-y-auto bg-white dark:bg-[#121211] text-[#282925] dark:text-[#EDEDE8] flex flex-col relative select-text font-sans">
       {/* Document Cover Banner */}
       {doc.coverImage ? (
-        <div className="relative group w-full h-40 sm:h-56 shrink-0 overflow-hidden bg-slate-200 dark:bg-slate-800">
+        <div className="relative group w-full h-40 sm:h-52 shrink-0 overflow-hidden bg-[#F8F8F6] dark:bg-[#181816]">
           {doc.coverImage.startsWith('linear-gradient') ? (
             <div className="w-full h-full" style={{ background: doc.coverImage }} />
           ) : (
@@ -225,17 +237,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             />
           )}
 
-          <div className="absolute bottom-3 right-4 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-lg text-xs text-white shadow-lg">
+          <div className="absolute bottom-3 right-4 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-2 bg-[#282925]/90 backdrop-blur-md p-1.5 rounded-[6px] text-xs text-white shadow-md">
             <button
               onClick={() => setShowCoverModal(true)}
-              className="px-2.5 py-1 hover:bg-white/20 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-2.5 py-1 hover:bg-white/10 rounded-[4px] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ImageIcon size={13} />
               <span>{t.changeCover}</span>
             </button>
             <button
               onClick={() => onUpdateDoc({ coverImage: undefined, updatedAt: Date.now() })}
-              className="px-2 py-1 hover:bg-rose-500/40 text-rose-300 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+              className="px-2 py-1 hover:bg-rose-500/30 text-rose-300 rounded-[4px] flex items-center gap-1 transition-colors cursor-pointer"
             >
               <Trash2 size={13} />
               <span className="hidden sm:inline">{t.removeCover}</span>
@@ -243,10 +255,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
         </div>
       ) : (
-        <div className="w-full flex items-center justify-end px-4 sm:px-8 pt-3">
+        <div className="w-full flex items-center justify-end px-6 sm:px-12 pt-3">
           <button
             onClick={() => setShowCoverModal(true)}
-            className="text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1.5 bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-medium"
+            className="text-xs text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] flex items-center gap-1.5 bg-[#F8F8F6] dark:bg-[#181816] hover:bg-[#EAEAE5] border border-[#EAEAE5] dark:border-[#2B2B28] px-3 py-1.5 rounded-[6px] transition-colors cursor-pointer font-medium"
           >
             <ImageIcon size={13} />
             <span>{t.changeCover}</span>
@@ -254,7 +266,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         </div>
       )}
 
-      {/* Cover Picker Modal (Supports Device File Upload & Presets) */}
+      {/* Cover Picker Modal */}
       <CoverPickerModal
         isOpen={showCoverModal}
         currentCover={doc.coverImage}
@@ -264,7 +276,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       />
 
       {/* Main Document Content Container */}
-      <div className="max-w-4xl w-full mx-auto px-4 sm:px-8 md:px-12 py-5 flex-1 flex flex-col">
+      <div className="max-w-4xl w-full mx-auto px-6 sm:px-10 md:px-12 py-5 flex-1 flex flex-col">
         {/* Document Icon & Title Header */}
         <div className="mb-4">
           <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -272,7 +284,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 title={t.changeIcon}
-                className="text-4xl sm:text-5xl p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="w-12 h-12 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] flex items-center justify-center text-3xl hover:bg-[#EAEAE5] transition-colors cursor-pointer"
               >
                 {doc.icon || '📄'}
               </button>
@@ -280,7 +292,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               {showEmojiPicker && (
                 <div 
                   onMouseLeave={() => setShowEmojiPicker(false)}
-                  className="absolute left-0 top-16 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl grid grid-cols-8 gap-1.5 z-40 text-xl"
+                  className="absolute left-0 top-14 p-2 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] shadow-2xl grid grid-cols-8 gap-1.5 z-40 text-xl"
                 >
                   {EMOJI_PRESETS.map((emoji) => (
                     <button
@@ -289,7 +301,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                         onUpdateDoc({ icon: emoji, updatedAt: Date.now() });
                         setShowEmojiPicker(false);
                       }}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      className="p-1.5 rounded hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors cursor-pointer"
                     >
                       {emoji}
                     </button>
@@ -299,19 +311,19 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             </div>
 
             {/* Quick Action Pill Buttons */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-[#777973]">
               <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1"
+                className="px-2 py-1 rounded-[4px] hover:bg-[#F8F8F6] dark:hover:bg-[#181816] transition-colors cursor-pointer"
               >
                 <span>{t.changeIcon}</span>
               </button>
-              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="text-[#A1A29B]">•</span>
               <button
                 onClick={() => setShowCoverModal(true)}
-                className="px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                className="px-2 py-1 rounded-[4px] hover:bg-[#F8F8F6] dark:hover:bg-[#181816] transition-colors cursor-pointer flex items-center gap-1.5"
               >
-                <ImageIcon size={13} className="text-indigo-500" />
+                <ImageIcon size={13} className="text-[#777973]" />
                 <span>{doc.coverImage ? t.changeCover : 'Tambah Sampul / Latar'}</span>
               </button>
             </div>
@@ -323,19 +335,19 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             value={doc.title}
             onChange={handleTitleChange}
             placeholder={t.emptyTitle}
-            className="w-full text-2xl sm:text-4xl font-bold tracking-tight bg-transparent text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none"
+            className="w-full text-2xl sm:text-3xl font-semibold tracking-tight bg-transparent text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none"
           />
         </div>
 
-        {/* Metadata Strip: Status, Priority, Deadline, Reminders, Tags, E2EE */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 py-3 border-y border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-400 mb-6">
+        {/* Metadata Strip: Status, Priority, Deadline, Reminders, Tags, E2EE (Figma border #EAEAE5) */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 py-3 border-y border-[#EAEAE5] dark:border-[#2B2B28] text-xs text-[#777973] mb-6">
           {/* Status selector */}
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">{t.status}:</span>
+            <span className="text-[#A1A29B]">{t.status}:</span>
             <select
               value={doc.status}
               onChange={(e) => onUpdateDoc({ status: e.target.value as DocStatus, updatedAt: Date.now() })}
-              className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              className={`rounded-[4px] px-2.5 py-1 text-xs font-medium border border-[#EAEAE5] dark:border-[#2B2B28] focus:outline-none cursor-pointer ${getStatusBadgeStyle(doc.status)}`}
             >
               <option value="not_started">{t.notStarted}</option>
               <option value="in_progress">{t.inProgress}</option>
@@ -346,11 +358,11 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
           {/* Priority selector */}
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">{t.priority}:</span>
+            <span className="text-[#A1A29B]">{t.priority}:</span>
             <select
               value={doc.priority}
               onChange={(e) => onUpdateDoc({ priority: e.target.value as DocPriority, updatedAt: Date.now() })}
-              className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+              className="bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[4px] px-2 py-1 text-[#282925] dark:text-[#EDEDE8] focus:outline-none cursor-pointer text-xs"
             >
               <option value="low">{t.low}</option>
               <option value="medium">{t.medium}</option>
@@ -360,18 +372,18 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
           {/* Deadline date picker */}
           <div className="flex items-center gap-1.5">
-            <Calendar size={13} className="text-slate-400 shrink-0" />
+            <Calendar size={13} className="text-[#A1A29B] shrink-0" />
             <input
               type="date"
               value={doc.deadline || ''}
               onChange={(e) => onUpdateDoc({ deadline: e.target.value || undefined, updatedAt: Date.now() })}
-              className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 text-slate-800 dark:text-slate-200 focus:outline-none text-xs"
+              className="bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[4px] px-2 py-0.5 text-[#282925] dark:text-[#EDEDE8] focus:outline-none text-xs"
             />
           </div>
 
           {/* Time Reminder picker */}
           <div className="flex items-center gap-1.5">
-            <Clock size={13} className="text-amber-500 shrink-0" />
+            <Clock size={13} className="text-[#8CA796] shrink-0" />
             <input
               type="datetime-local"
               value={doc.reminderTime ? new Date(doc.reminderTime).toISOString().slice(0, 16) : ''}
@@ -380,22 +392,22 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 onUpdateDoc({ reminderTime: val, reminderNotified: false, updatedAt: Date.now() });
               }}
               title={t.reminder}
-              className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 text-slate-800 dark:text-slate-200 focus:outline-none text-xs"
+              className="bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[4px] px-2 py-0.5 text-[#282925] dark:text-[#EDEDE8] focus:outline-none text-xs"
             />
           </div>
 
           {/* Tags list */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Tag size={13} className="text-slate-400 shrink-0" />
+            <Tag size={13} className="text-[#A1A29B] shrink-0" />
             {doc.tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px]"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-[#F4F4F0] dark:bg-[#252522] text-[#777973] dark:text-[#A1A29B] text-[11px]"
               >
                 <span>{tag}</span>
                 <button
                   onClick={() => handleRemoveTag(tag)}
-                  className="hover:text-rose-500"
+                  className="hover:text-rose-500 cursor-pointer"
                 >
                   <X size={10} />
                 </button>
@@ -409,17 +421,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                   value={newTagText}
                   onChange={(e) => setNewTagText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-                  className="w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 text-[11px] focus:outline-none"
+                  className="w-20 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[4px] px-1.5 py-0.5 text-[11px] focus:outline-none text-[#282925] dark:text-[#EDEDE8]"
                   autoFocus
                 />
-                <button onClick={handleAddTag} className="text-indigo-500 hover:text-indigo-600">
+                <button onClick={handleAddTag} className="text-[#282925] dark:text-[#EDEDE8]">
                   <Plus size={12} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setShowTagInput(true)}
-                className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                className="p-1 rounded text-[#777973] hover:text-[#282925] cursor-pointer"
               >
                 <Plus size={12} />
               </button>
@@ -429,10 +441,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           {/* E2EE indicator button */}
           <button
             onClick={() => onUpdateDoc({ isEncrypted: !doc.isEncrypted, updatedAt: Date.now() })}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border border-[#EAEAE5] dark:border-[#2B2B28] transition-colors cursor-pointer ${
               doc.isEncrypted
-                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:text-[#282925]'
             }`}
           >
             {doc.isEncrypted ? <Lock size={12} /> : <Unlock size={12} />}
@@ -442,19 +454,19 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           {/* Last Modified By (Status & Progress Audit Pill) */}
           {doc.lastModifiedBy && (
             <div 
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-700 dark:text-slate-300"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] text-[11px] text-[#777973]"
               title={`${doc.lastModifiedBy.action || 'Diperbarui'} (${new Date(doc.lastModifiedBy.timestamp).toLocaleString()})`}
             >
               <div
-                style={{ backgroundColor: doc.lastModifiedBy.color }}
+                style={{ backgroundColor: doc.lastModifiedBy.color || '#6366F1' }}
                 className="w-4 h-4 rounded-full text-white text-[8px] font-bold flex items-center justify-center shrink-0 shadow-2xs"
               >
                 {doc.lastModifiedBy.name.charAt(0).toUpperCase()}
               </div>
               <span>
-                <span className="text-slate-400 mr-1">{lang === 'id' ? 'Diubah oleh:' : 'Updated by:'}</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{doc.lastModifiedBy.name}</span>
-                <span className="text-slate-400 ml-1">· {formatTimeAgo(doc.lastModifiedBy.timestamp, lang)}</span>
+                <span className="text-[#A1A29B] mr-1">{lang === 'id' ? 'Diubah oleh:' : 'Updated by:'}</span>
+                <span className="font-semibold text-[#282925] dark:text-[#EDEDE8]">{doc.lastModifiedBy.name}</span>
+                <span className="text-[#A1A29B] ml-1">· {formatTimeAgo(doc.lastModifiedBy.timestamp, lang)}</span>
               </span>
             </div>
           )}
@@ -462,13 +474,13 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           {/* Progress Audit Trail Modal Trigger */}
           <button
             onClick={() => setShowHistoryModal(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] text-[11px] font-medium hover:bg-[#EAEAE5] transition-colors cursor-pointer"
             title="Lihat riwayat siapa yang mengubah status dokumen ini"
           >
             <History size={12} />
             <span>{lang === 'id' ? 'Riwayat Progres' : 'Progress Audit'}</span>
             {doc.statusHistory && doc.statusHistory.length > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-indigo-200/70 dark:bg-indigo-800 text-[10px] font-mono">
+              <span className="ml-0.5 px-1.5 py-0.2 rounded bg-[#EAEAE5] dark:bg-[#252522] text-[10px] font-mono">
                 {doc.statusHistory.length}
               </span>
             )}
@@ -477,39 +489,39 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
         {/* Audit Trail Modal */}
         {showHistoryModal && (
-          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col overflow-hidden">
-              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                    <History size={18} />
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+            <div className="bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-[#EAEAE5] dark:border-[#2B2B28] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] flex items-center justify-center">
+                    <History size={16} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    <h3 className="text-sm font-semibold text-[#282925] dark:text-[#EDEDE8]">
                       {lang === 'id' ? 'Riwayat Perubahan Progres & Status' : 'Progress & Status Audit Trail'}
                     </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] text-[#777973]">
                       {doc.title || 'Dokumen'} · {doc.statusHistory?.length || 0} catatan perubahan
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowHistoryModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded text-[#777973] hover:text-[#282925] transition-colors"
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              <div className="p-4 overflow-y-auto space-y-3 flex-1">
+              <div className="p-4 overflow-y-auto space-y-2.5 flex-1">
                 {doc.statusHistory && doc.statusHistory.length > 0 ? (
                   doc.statusHistory.map((item, idx) => {
                     const statusLabel = (st: DocStatus) => {
                       switch (st) {
-                        case 'completed': return { text: t.completed, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' };
-                        case 'in_progress': return { text: t.inProgress, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40' };
-                        case 'archived': return { text: t.archived, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' };
-                        default: return { text: t.notStarted, color: 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800' };
+                        case 'completed': return { text: t.completed, color: 'text-[#567561] bg-[#EDF3EE] dark:bg-[#1E2B22]' };
+                        case 'in_progress': return { text: t.inProgress, color: 'text-[#5D748B] bg-[#EBF0F5] dark:bg-[#242A32]' };
+                        case 'archived': return { text: t.archived, color: 'text-[#777973] bg-[#F4F4F0]' };
+                        default: return { text: t.notStarted, color: 'text-[#777973] bg-[#F4F4F0]' };
                       }
                     };
 
@@ -519,10 +531,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                     return (
                       <div
                         key={item.id || idx}
-                        className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-start gap-3"
+                        className="p-3 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] flex items-start gap-3"
                       >
                         <div
-                          style={{ backgroundColor: item.changedBy.color }}
+                          style={{ backgroundColor: item.changedBy.color || '#6366F1' }}
                           className="w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0 shadow-xs mt-0.5"
                         >
                           {item.changedBy.name.charAt(0).toUpperCase()}
@@ -530,25 +542,25 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            <span className="text-xs font-semibold text-[#282925] dark:text-[#EDEDE8]">
                               {item.changedBy.name}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">
+                            <span className="text-[10px] text-[#A1A29B] font-mono">
                               {formatTimeAgo(item.timestamp, lang)}
                             </span>
                           </div>
 
                           <div className="flex items-center gap-1.5 mt-1 text-xs">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${fromSt.color}`}>
+                            <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-medium ${fromSt.color}`}>
                               {fromSt.text}
                             </span>
-                            <span className="text-slate-400">➔</span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${toSt.color}`}>
+                            <span className="text-[#A1A29B]">➔</span>
+                            <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-semibold ${toSt.color}`}>
                               {toSt.text}
                             </span>
                           </div>
 
-                          <div className="text-[10px] text-slate-400 mt-1">
+                          <div className="text-[10px] text-[#A1A29B] mt-1">
                             {new Date(item.timestamp).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US', {
                               dateStyle: 'medium',
                               timeStyle: 'short',
@@ -559,16 +571,16 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                     );
                   })
                 ) : (
-                  <div className="text-center py-8 text-slate-400 text-xs">
+                  <div className="text-center py-8 text-[#A1A29B] text-xs">
                     {lang === 'id' ? 'Belum ada riwayat perubahan status pada dokumen ini.' : 'No status change history for this document yet.'}
                   </div>
                 )}
               </div>
 
-              <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end">
+              <div className="p-3 border-t border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] flex justify-end">
                 <button
                   onClick={() => setShowHistoryModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-medium transition-colors"
+                  className="px-3.5 py-1.5 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-white dark:bg-[#1E1E1C] hover:bg-[#EAEAE5] text-[#282925] dark:text-[#EDEDE8] text-xs font-medium transition-colors"
                 >
                   Tutup
                 </button>
@@ -579,14 +591,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
         {/* Locked Document Vault Guard */}
         {isDocumentLocked ? (
-          <div className="my-12 p-8 rounded-2xl border border-amber-300 dark:border-amber-800/80 bg-amber-50/50 dark:bg-amber-950/20 text-center max-w-md mx-auto">
-            <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3">
-              <Lock size={24} />
+          <div className="my-12 p-8 rounded-[8px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] text-center max-w-md mx-auto">
+            <div className="w-12 h-12 rounded-[6px] bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] text-amber-600 flex items-center justify-center mx-auto mb-3">
+              <Lock size={22} />
             </div>
-            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+            <h4 className="text-base font-semibold text-[#282925] dark:text-[#EDEDE8] mb-1">
               {t.unlockDocument}
             </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
+            <p className="text-xs text-[#777973] mb-4">
               {t.passphraseDesc}
             </p>
 
@@ -596,7 +608,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 placeholder={t.enterPassphrase}
                 value={passphraseInput}
                 onChange={(e) => setPassphraseInput(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 text-xs rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-white dark:bg-[#1E1E1C] text-[#282925] dark:text-[#EDEDE8] focus:outline-none"
               />
 
               {decryptError && (
@@ -609,7 +621,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <button
                 type="submit"
                 disabled={isDecrypting}
-                className="w-full py-2 px-4 rounded-lg bg-amber-600 text-white font-medium text-xs hover:bg-amber-700 transition-colors disabled:opacity-50"
+                className="w-full py-2 px-4 rounded-[6px] bg-[#282925] text-white font-medium text-xs hover:bg-[#3E3F3B] transition-colors disabled:opacity-50"
               >
                 {isDecrypting ? t.syncing : t.unlockDocument}
               </button>
@@ -617,100 +629,100 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
         ) : (
           <>
-            {/* Markdown Editor Toolbar & Mode Switcher */}
-            <div className="flex items-center justify-between gap-2 mb-3 bg-slate-50 dark:bg-slate-900/70 p-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-x-auto">
+            {/* Markdown Editor Toolbar & Mode Switcher (Figma style) */}
+            <div className="flex items-center justify-between gap-2 mb-3 bg-[#F8F8F6] dark:bg-[#181816] p-1.5 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] overflow-x-auto">
               {/* Markdown insertion tools */}
               <div className="flex items-center gap-0.5 shrink-0">
                 <button
                   onClick={() => insertMarkdown('# ')}
                   title={t.blockHeading1}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <Heading1 size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('## ')}
                   title={t.blockHeading2}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <Heading2 size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('### ')}
                   title={t.blockHeading3}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <Heading3 size={14} />
                 </button>
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
+                <div className="w-px h-4 bg-[#EAEAE5] dark:bg-[#2B2B28] mx-1" />
                 <button
                   onClick={() => insertMarkdown('**', '**')}
                   title="Bold"
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <Bold size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('*', '*')}
                   title="Italic"
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <Italic size={14} />
                 </button>
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
+                <div className="w-px h-4 bg-[#EAEAE5] dark:bg-[#2B2B28] mx-1" />
                 <button
                   onClick={() => insertMarkdown('- [ ] ')}
                   title={t.blockTodo}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <CheckSquare size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('- ')}
                   title={t.blockBullet}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <List size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('1. ')}
                   title="Numbered List"
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <ListOrdered size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('> ')}
                   title={t.blockQuote}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <Quote size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('```typescript\n', '\n```')}
                   title={t.blockCode}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <Code size={14} />
                 </button>
                 <button
                   onClick={() => insertMarkdown('\n---\n')}
                   title={t.blockDivider}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="p-1.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#777973] hover:text-[#282925]"
                 >
                   <SplitSquareVertical size={14} />
                 </button>
               </div>
 
               {/* View mode toggle */}
-              <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs shrink-0">
+              <div className="flex items-center gap-1 bg-white dark:bg-[#1E1E1C] p-0.5 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] text-xs shrink-0">
                 <button
                   onClick={() => setViewMode('edit')}
                   title={t.editMarkdown}
-                  className={`px-2 py-1 rounded-md flex items-center gap-1 transition-colors ${
+                  className={`px-2 py-1 rounded-[3px] flex items-center gap-1 transition-colors ${
                     viewMode === 'edit'
-                      ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-medium shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
+                      : 'text-[#777973] hover:text-[#282925]'
                   }`}
                 >
                   <Edit3 size={13} />
@@ -720,10 +732,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 <button
                   onClick={() => setViewMode('split')}
                   title={t.bothMarkdown}
-                  className={`hidden md:flex px-2 py-1 rounded-md items-center gap-1 transition-colors ${
+                  className={`hidden md:flex px-2 py-1 rounded-[3px] items-center gap-1 transition-colors ${
                     viewMode === 'split'
-                      ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-medium shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
+                      : 'text-[#777973] hover:text-[#282925]'
                   }`}
                 >
                   <Columns size={13} />
@@ -733,10 +745,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 <button
                   onClick={() => setViewMode('preview')}
                   title={t.previewMarkdown}
-                  className={`px-2 py-1 rounded-md flex items-center gap-1 transition-colors ${
+                  className={`px-2 py-1 rounded-[3px] flex items-center gap-1 transition-colors ${
                     viewMode === 'preview'
-                      ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-medium shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
+                      : 'text-[#777973] hover:text-[#282925]'
                   }`}
                 >
                   <Eye size={13} />
@@ -749,8 +761,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             <div className="flex-1 grid grid-cols-1 gap-4 min-h-[350px] relative">
               {/* Floating Notion Slash Command Popup */}
               {showSlashMenu && (
-                <div className="absolute left-4 top-4 z-30 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden py-1">
-                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="absolute left-4 top-4 z-30 w-72 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] shadow-2xl overflow-hidden py-1">
+                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#A1A29B] border-b border-[#EAEAE5] dark:border-[#2B2B28] flex items-center justify-between">
                     <span>Perintah Dasar (Slash Command)</span>
                     <button onClick={() => setShowSlashMenu(false)}>
                       <X size={12} />
@@ -763,16 +775,16 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                         onClick={() => insertMarkdown(opt.prefix, opt.suffix || '', true)}
                         className={`w-full px-3 py-2 text-left flex items-center gap-2.5 transition-colors ${
                           i === slashIndex
-                            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300'
-                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200'
+                            ? 'bg-[#F8F8F6] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
+                            : 'hover:bg-[#F8F8F6] dark:hover:bg-[#252522] text-[#777973]'
                         }`}
                       >
-                        <span className="p-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <span className="p-1 rounded bg-[#F4F4F0] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8]">
                           {opt.icon}
                         </span>
                         <div>
-                          <div className="text-xs font-semibold">{opt.label}</div>
-                          <div className="text-[10px] text-slate-400">{opt.desc}</div>
+                          <div className="text-xs font-medium">{opt.label}</div>
+                          <div className="text-[10px] text-[#A1A29B]">{opt.desc}</div>
                         </div>
                       </button>
                     ))}
@@ -790,31 +802,31 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                       value={doc.content}
                       onChange={handleContentChange}
                       placeholder={t.writePlaceholder}
-                      className="w-full flex-1 min-h-[380px] p-4 text-sm font-mono leading-relaxed bg-slate-50/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                      className="w-full flex-1 min-h-[380px] p-4 text-sm font-mono leading-relaxed bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none resize-none"
                     />
                   </div>
                 )}
 
                 {/* Rendered Markdown Preview with Interactive Checklists */}
                 {(viewMode === 'preview' || viewMode === 'split') && (
-                  <div className="p-4 sm:p-6 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl flex-1 overflow-y-auto space-y-3 prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 text-sm">
+                  <div className="p-5 sm:p-6 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] flex-1 overflow-y-auto space-y-3 max-w-none text-[#282925] dark:text-[#EDEDE8] text-sm">
                     {parsedBlocks.map((block, idx) => {
                       switch (block.type) {
                         case 'h1':
                           return (
-                            <h1 key={block.id} className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white pt-2 pb-1 border-b border-slate-200 dark:border-slate-800">
+                            <h1 key={block.id} className="text-2xl font-bold tracking-tight text-[#282925] dark:text-[#EDEDE8] pt-2 pb-1 border-b border-[#EAEAE5] dark:border-[#2B2B28]">
                               {block.text}
                             </h1>
                           );
                         case 'h2':
                           return (
-                            <h2 key={block.id} className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white pt-2">
+                            <h2 key={block.id} className="text-xl font-semibold tracking-tight text-[#282925] dark:text-[#EDEDE8] pt-2">
                               {block.text}
                             </h2>
                           );
                         case 'h3':
                           return (
-                            <h3 key={block.id} className="text-base font-semibold text-slate-900 dark:text-white pt-1">
+                            <h3 key={block.id} className="text-base font-semibold text-[#282925] dark:text-[#EDEDE8] pt-1">
                               {block.text}
                             </h3>
                           );
@@ -825,57 +837,57 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                                 type="checkbox"
                                 checked={block.checked}
                                 onChange={() => handleToggleTodo(idx, block.text, !!block.checked)}
-                                className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                className="mt-1 w-4 h-4 rounded border-[#EAEAE5] accent-[#282925] cursor-pointer"
                               />
-                              <span className={block.checked ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}>
+                              <span className={block.checked ? 'line-through text-[#A1A29B]' : 'text-[#282925] dark:text-[#EDEDE8]'}>
                                 <span dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(block.text) }} />
                               </span>
                             </div>
                           );
                         case 'bullet':
                           return (
-                            <li key={block.id} className="ml-5 list-disc text-slate-700 dark:text-slate-300">
+                            <li key={block.id} className="ml-5 list-disc text-[#777973] dark:text-[#A1A29B]">
                               <span dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(block.text) }} />
                             </li>
                           );
                         case 'numbered':
                           return (
-                            <div key={block.id} className="ml-5 list-decimal text-slate-700 dark:text-slate-300">
+                            <div key={block.id} className="ml-5 list-decimal text-[#777973] dark:text-[#A1A29B]">
                               <span dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(block.text) }} />
                             </div>
                           );
                         case 'quote':
                           return (
-                            <blockquote key={block.id} className="border-l-2 border-indigo-500 pl-4 py-1 italic text-slate-600 dark:text-slate-400 my-2">
+                            <blockquote key={block.id} className="border-l-2 border-[#282925] dark:border-[#EDEDE8] pl-3 py-1 italic text-[#777973] my-2">
                               {block.text}
                             </blockquote>
                           );
                         case 'callout':
                           return (
-                            <div key={block.id} className="p-3 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 rounded-xl text-indigo-900 dark:text-indigo-200 text-xs">
+                            <div key={block.id} className="p-3 bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] text-[#282925] dark:text-[#EDEDE8] text-xs">
                               {block.text}
                             </div>
                           );
                         case 'code':
                           return (
-                            <div key={block.id} className="my-2 rounded-xl bg-slate-900 dark:bg-slate-950 p-3.5 text-xs text-slate-100 font-mono overflow-x-auto">
-                              <div className="text-[10px] text-slate-400 uppercase mb-1">
+                            <div key={block.id} className="my-2 rounded-[6px] bg-[#181816] border border-[#2B2B28] p-3 text-xs text-[#EDEDE8] font-mono overflow-x-auto">
+                              <div className="text-[10px] text-[#A1A29B] uppercase mb-1">
                                 {block.codeLang || 'code'}
                               </div>
                               <pre>{block.text}</pre>
                             </div>
                           );
                         case 'divider':
-                          return <hr key={block.id} className="my-4 border-slate-200 dark:border-slate-800" />;
+                          return <hr key={block.id} className="my-4 border-[#EAEAE5] dark:border-[#2B2B28]" />;
                         case 'table':
                           return (
-                            <div key={block.id} className="overflow-x-auto my-3">
+                            <div key={block.id} className="overflow-x-auto my-3 border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px]">
                               <table className="w-full text-left text-xs border-collapse">
                                 <tbody>
                                   {block.tableRows?.map((row, rIdx) => (
-                                    <tr key={rIdx} className={rIdx === 0 ? 'bg-slate-100 dark:bg-slate-800 font-semibold' : 'border-t border-slate-200 dark:border-slate-800'}>
+                                    <tr key={rIdx} className={rIdx === 0 ? 'bg-[#F8F8F6] dark:bg-[#181816] font-semibold text-[#282925] dark:text-[#EDEDE8]' : 'border-t border-[#EAEAE5] dark:border-[#2B2B28]'}>
                                       {row.map((cell, cIdx) => (
-                                        <td key={cIdx} className="p-2 border border-slate-200 dark:border-slate-700">
+                                        <td key={cIdx} className="p-2 border-r last:border-r-0 border-[#EAEAE5] dark:border-[#2B2B28]">
                                           {cell}
                                         </td>
                                       ))}
@@ -899,7 +911,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             </div>
 
             {/* Document Word Stats Footer */}
-            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+            <div className="mt-3 flex items-center justify-between text-[11px] text-[#A1A29B] font-mono">
               <div className="flex items-center gap-2">
                 <span>{wordCount} kata</span>
                 <span>·</span>
@@ -908,19 +920,19 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 <span>~{readTimeMin} mnt baca</span>
               </div>
               <div className="hidden sm:block">
-                <span>Ketik <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">/</code> untuk perintah cepat</span>
+                <span>Ketik <code className="bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] px-1 rounded">/</code> untuk perintah cepat</span>
               </div>
             </div>
 
             {/* Hierarchical Sub-pages section */}
-            <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-10 pt-6 border-t border-[#EAEAE5] dark:border-[#2B2B28]">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#A1A29B]">
                   {t.subPages} ({subPages.length})
                 </h4>
                 <button
                   onClick={() => onCreateSubPage(doc.id)}
-                  className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium"
+                  className="flex items-center gap-1 text-xs text-[#282925] dark:text-[#EDEDE8] hover:underline font-medium cursor-pointer"
                 >
                   <Plus size={13} />
                   <span>{t.newSubDoc}</span>
@@ -933,22 +945,22 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                     <div
                       key={sub.id}
                       onClick={() => onSelectDoc(sub.id)}
-                      className="p-3 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 cursor-pointer transition-colors group flex items-center justify-between"
+                      className="p-3 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] hover:bg-[#EAEAE5] cursor-pointer transition-colors group flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-base">{sub.icon || '📄'}</span>
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        <span className="text-xs font-semibold text-[#282925] dark:text-[#EDEDE8] truncate">
                           {sub.title || t.emptyTitle}
                         </span>
                       </div>
-                      <span className="text-[11px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300">
+                      <span className="text-[11px] text-[#777973] group-hover:text-[#282925]">
                         →
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 italic">
+                <p className="text-xs text-[#A1A29B] italic">
                   {t.noSubPages}
                 </p>
               )}

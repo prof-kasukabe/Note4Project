@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Lock, 
   Unlock, 
-  ShieldCheck, 
   Key, 
   X, 
   Download, 
@@ -66,44 +65,44 @@ export const EncryptionModal: React.FC<EncryptionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none font-sans">
+      <div className="bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] max-w-md w-full p-6 shadow-2xl relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          className="absolute top-4 right-4 text-[#777973] hover:text-[#282925] transition-colors"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            {isUnlocked ? <Unlock size={20} /> : <Lock size={20} />}
+          <div className="w-10 h-10 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] text-amber-600 flex items-center justify-center">
+            {isUnlocked ? <Unlock size={18} /> : <Lock size={18} />}
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            <h3 className="text-base font-semibold text-[#282925] dark:text-[#EDEDE8]">
               {t.encryptedVault}
             </h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-[#777973]">
               {isUnlocked ? t.e2eeUnlocked : t.e2eeLocked}
             </span>
           </div>
         </div>
 
-        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
+        <p className="text-xs text-[#777973] leading-relaxed mb-5">
           {t.passphraseDesc}
         </p>
 
         {isUnlocked ? (
           <div className="space-y-4">
-            <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
-              <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+            <div className="p-3 rounded-[6px] bg-[#EDF3EE] dark:bg-[#1E2B22] border border-[#EAEAE5] dark:border-[#2B2B28] text-[#567561] text-xs flex items-center gap-2">
+              <CheckCircle2 size={16} className="shrink-0" />
               <span>Brankas aktif dan dapat membaca seluruh catatan rahasia yang terenkripsi.</span>
             </div>
 
             <div className="pt-2 flex flex-col gap-2">
               <button
                 onClick={onExportEncryptedVault}
-                className="w-full py-2 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2 px-3 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] hover:bg-[#EAEAE5] text-[#282925] dark:text-[#EDEDE8] text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <Download size={14} />
                 <span>Unduh Cadangan Brankas Terenkripsi (.json)</span>
@@ -114,7 +113,7 @@ export const EncryptionModal: React.FC<EncryptionModalProps> = ({
                   onLock();
                   onClose();
                 }}
-                className="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2 px-3 rounded-[6px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <Lock size={14} />
                 <span>{t.lockAll}</span>
@@ -124,7 +123,7 @@ export const EncryptionModal: React.FC<EncryptionModalProps> = ({
         ) : (
           <form onSubmit={handleUnlockSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-[#282925] dark:text-[#EDEDE8] mb-1">
                 {t.enterPassphrase}
               </label>
               <div className="relative">
@@ -133,12 +132,12 @@ export const EncryptionModal: React.FC<EncryptionModalProps> = ({
                   placeholder="Masukkan frasa sandi (contoh demo: noverse2026)"
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 py-2 text-xs rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] text-[#282925] dark:text-[#EDEDE8] focus:outline-none"
                   autoFocus
                 />
               </div>
-              <div className="text-[11px] text-slate-400 mt-1">
-                Tips demo: gunakan frasa <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded font-mono">noverse2026</code>
+              <div className="text-[11px] text-[#A1A29B] mt-1 font-mono">
+                Tips demo: gunakan frasa <code className="bg-[#F8F8F6] dark:bg-[#181816] px-1 rounded border border-[#EAEAE5] dark:border-[#2B2B28]">noverse2026</code>
               </div>
             </div>
 
@@ -150,7 +149,7 @@ export const EncryptionModal: React.FC<EncryptionModalProps> = ({
             )}
 
             {successMsg && (
-              <div className="text-xs text-emerald-600 flex items-center gap-1.5">
+              <div className="text-xs text-[#567561] flex items-center gap-1.5">
                 <CheckCircle2 size={13} />
                 <span>{successMsg}</span>
               </div>
@@ -159,7 +158,7 @@ export const EncryptionModal: React.FC<EncryptionModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              className="w-full py-2 px-4 rounded-[6px] bg-[#282925] hover:bg-[#3E3F3B] text-white text-xs font-medium shadow-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
             >
               <Key size={14} />
               <span>{loading ? t.syncing : t.unlockDocument}</span>

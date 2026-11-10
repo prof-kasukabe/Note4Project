@@ -4,10 +4,7 @@ import {
   Clock, 
   CheckCircle2, 
   X, 
-  Volume2, 
-  AlertTriangle, 
-  Calendar,
-  Sparkles
+  Volume2
 } from 'lucide-react';
 import { DocItem, Language } from '../types';
 import { translations } from '../utils/i18n';
@@ -52,26 +49,26 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none font-sans">
+      <div className="bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] max-w-lg w-full p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          className="absolute top-4 right-4 text-[#777973] hover:text-[#282925] transition-colors"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Bell size={20} />
+        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-[#EAEAE5] dark:border-[#2B2B28]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] flex items-center justify-center">
+              <Bell size={16} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-semibold text-[#282925] dark:text-[#EDEDE8]">
                 {t.reminders}
               </h3>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-[#777973]">
                 {reminderDocs.length} tugas & catatan terjadwal
               </span>
             </div>
@@ -80,20 +77,20 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           <button
             onClick={() => playReminderChime()}
             title="Uji Suara Lonceng Audio Web"
-            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 flex items-center gap-1.5 text-xs transition-colors"
+            className="p-1.5 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] hover:bg-[#EAEAE5] text-[#777973] hover:text-[#282925] flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
           >
-            <Volume2 size={14} className="text-indigo-500" />
+            <Volume2 size={13} />
             <span className="hidden sm:inline">Tes Suara</span>
           </button>
         </div>
 
         {/* Browser notification permission banner */}
         {!hasNotificationPermission() && (
-          <div className="p-3 mb-4 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between text-xs text-indigo-900 dark:text-indigo-200">
-            <span>Dapatkan alarm tepat waktu langsung di browser Anda.</span>
+          <div className="p-3 mb-4 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] flex items-center justify-between text-xs text-[#282925] dark:text-[#EDEDE8]">
+            <span className="text-[11px] text-[#777973]">Dapatkan notifikasi pengingat tepat waktu langsung di browser Anda.</span>
             <button
               onClick={handleRequestPermission}
-              className="px-2.5 py-1 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors shrink-0"
+              className="px-2.5 py-1 rounded-[4px] bg-[#282925] text-white font-medium hover:bg-[#3E3F3B] transition-colors shrink-0 cursor-pointer text-xs"
             >
               {t.enableBrowserNotifs}
             </button>
@@ -110,10 +107,10 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
               return (
                 <div
                   key={item.id}
-                  className={`p-3.5 rounded-xl border transition-all ${
+                  className={`p-3.5 rounded-[6px] border transition-colors ${
                     isPast
-                      ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50'
-                      : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/80'
+                      ? 'bg-[#FFF0F0] dark:bg-[#331C1C] border-[#FFCDD2] dark:border-[#5C2424]'
+                      : 'bg-[#F8F8F6] dark:bg-[#181816] border-[#EAEAE5] dark:border-[#2B2B28]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -122,20 +119,20 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                         onSelectDoc(item.id);
                         onClose();
                       }}
-                      className="cursor-pointer flex items-center gap-2 min-w-0 flex-1"
+                      className="cursor-pointer flex items-center gap-2.5 min-w-0 flex-1"
                     >
-                      <span className="text-lg">{item.icon || '📄'}</span>
+                      <span className="text-base">{item.icon || '📄'}</span>
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        <div className="text-xs font-semibold text-[#282925] dark:text-[#EDEDE8] truncate">
                           {item.title || t.emptyTitle}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-                          <Clock size={11} className={isPast ? 'text-rose-500' : 'text-amber-500'} />
+                        <div className="text-[11px] text-[#777973] flex items-center gap-1.5 mt-0.5">
+                          <Clock size={11} className={isPast ? 'text-rose-500' : 'text-[#8CA796]'} />
                           <span className="font-mono">
                             {new Date(reminderTimestamp).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}
                           </span>
                           {isPast && (
-                            <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase">
+                            <span className="text-[10px] text-rose-600 font-semibold uppercase">
                               (Waktunya Tiba!)
                             </span>
                           )}
@@ -146,29 +143,29 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                     <button
                       onClick={() => onDismissReminder(item.id)}
                       title={t.markDone}
-                      className="p-1 rounded text-slate-400 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="p-1 rounded text-[#777973] hover:text-[#567561] cursor-pointer"
                     >
                       <CheckCircle2 size={16} />
                     </button>
                   </div>
 
                   {/* Action buttons: Snooze & Mark Done */}
-                  <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-end gap-2 text-xs">
+                  <div className="mt-2.5 pt-2 border-t border-[#EAEAE5] dark:border-[#2B2B28] flex items-center justify-end gap-2 text-xs">
                     <button
                       onClick={() => onSnoozeReminder(item.id, 5)}
-                      className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-[11px]"
+                      className="px-2 py-0.5 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-white dark:bg-[#1E1E1C] hover:bg-[#EAEAE5] text-[#282925] dark:text-[#EDEDE8] text-[11px] cursor-pointer"
                     >
                       {t.snooze5m}
                     </button>
                     <button
                       onClick={() => onSnoozeReminder(item.id, 15)}
-                      className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-[11px]"
+                      className="px-2 py-0.5 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-white dark:bg-[#1E1E1C] hover:bg-[#EAEAE5] text-[#282925] dark:text-[#EDEDE8] text-[11px] cursor-pointer"
                     >
                       {t.snooze15m}
                     </button>
                     <button
                       onClick={() => onDismissReminder(item.id)}
-                      className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-[11px]"
+                      className="px-2.5 py-0.5 rounded-[4px] bg-[#282925] hover:bg-[#3E3F3B] text-white font-medium text-[11px] cursor-pointer"
                     >
                       {t.markDone}
                     </button>
@@ -177,7 +174,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
               );
             })
           ) : (
-            <div className="text-center py-10 text-xs text-slate-400">
+            <div className="text-center py-10 text-xs text-[#A1A29B]">
               {t.noReminders}
             </div>
           )}
