@@ -4,19 +4,28 @@ import {
   ChevronDown, 
   Plus, 
   Trash2, 
-  Table, 
-  Kanban, 
-  Calendar as CalendarIcon, 
-  BarChart3, 
-  Lock, 
-  Star, 
-  FolderTree, 
   Search,
   Wifi,
   WifiOff,
   RefreshCw,
   Copy,
-  X
+  X,
+  Home,
+  Inbox,
+  CheckCircle2,
+  FolderOpen,
+  CalendarDays,
+  FileText,
+  Users,
+  Globe,
+  Smartphone,
+  Palette,
+  UserPlus,
+  Settings2,
+  ChevronsUpDown,
+  ArrowRight,
+  Star,
+  Lock
 } from 'lucide-react';
 import { DocItem, ActiveView, Language, SyncState, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
@@ -37,6 +46,8 @@ interface SidebarProps {
   onDuplicateDoc: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onManualSync?: () => void;
+  userProfile?: { userId: string; name: string; color: string };
+  onOpenNotificationModal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -55,17 +66,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDuplicateDoc,
   onToggleFavorite,
   onManualSync,
+  userProfile = { userId: 'u1', name: 'Nabila A.', color: '#6366F1' },
+  onOpenNotificationModal,
 }) => {
   const t = translations[lang];
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsedNodes, setCollapsedNodes] = useState<Record<string, boolean>>({});
+  const [showDocTree, setShowDocTree] = useState(true);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   const toggleCollapse = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCollapsedNodes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Filter docs
   const filteredDocs = searchQuery.trim()
     ? docs.filter(
         (d) =>
@@ -76,7 +90,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const favoriteDocs = docs.filter((d) => d.isFavorite);
 
-  // Group by parentId
   const getChildren = (parentId: string | null) => {
     return filteredDocs.filter((d) => d.parentId === parentId);
   };
@@ -92,6 +105,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onCloseMobile();
   };
 
+  const handleInviteClick = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 2000);
+  };
+
   const renderDocNode = (doc: DocItem, level = 0) => {
     const children = getChildren(doc.id);
     const hasChildren = children.length > 0;
@@ -102,32 +121,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div key={doc.id} className="select-none">
         <div
           onClick={() => handleDocClick(doc.id)}
-          style={{ paddingLeft: `${Math.max(10, level * 14 + 10)}px` }}
-          className={`group flex items-center justify-between py-1.5 pr-2.5 rounded-lg text-xs font-medium cursor-pointer transition-colors duration-150 ${
+          style={{ paddingLeft: `${Math.max(8, level * 12 + 8)}px` }}
+          className={`group flex items-center justify-between py-1.5 pr-2 rounded text-xs cursor-pointer transition-colors duration-150 ${
             isSelected
-              ? 'bg-slate-200/80 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'bg-[#EAEAE5] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+              : 'text-[#777973] dark:text-[#A1A29B] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] dark:hover:text-[#EDEDE8]'
           }`}
         >
           <div className="flex items-center gap-1.5 min-w-0">
             {hasChildren ? (
               <button
                 onClick={(e) => toggleCollapse(doc.id, e)}
-                className="p-0.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                className="p-0.5 rounded text-[#777973] hover:text-[#282925] dark:hover:text-white"
               >
-                {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
               </button>
             ) : (
-              <span className="w-3.5 inline-block" />
+              <span className="w-3 inline-block" />
             )}
-            <span className="text-sm shrink-0">{doc.icon || '📄'}</span>
+            <span className="text-xs shrink-0">{doc.icon || '📄'}</span>
             <span className="truncate">{doc.title || t.emptyTitle}</span>
             {doc.isEncrypted && (
-              <Lock size={11} className="text-amber-500 shrink-0 ml-0.5" />
+              <Lock size={10} className="text-amber-500 shrink-0 ml-0.5" />
             )}
           </div>
 
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               title={t.newSubDoc}
               onClick={(e) => {
@@ -135,9 +154,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onCreateDoc(doc.id);
                 onCloseMobile();
               }}
-              className="p-1 rounded text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+              className="p-0.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-slate-700 text-[#777973]"
             >
-              <Plus size={12} />
+              <Plus size={11} />
             </button>
             <button
               title={t.duplicateDoc}
@@ -145,9 +164,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 e.stopPropagation();
                 onDuplicateDoc(doc.id);
               }}
-              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+              className="p-0.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-slate-700 text-[#777973]"
             >
-              <Copy size={12} />
+              <Copy size={11} />
             </button>
             <button
               title={t.deleteDoc}
@@ -155,9 +174,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 e.stopPropagation();
                 onDeleteDoc(doc.id);
               }}
-              className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+              className="p-0.5 rounded hover:bg-[#EAEAE5] dark:hover:bg-slate-700 text-rose-500"
             >
-              <Trash2 size={12} />
+              <Trash2 size={11} />
             </button>
           </div>
         </div>
@@ -165,8 +184,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {hasChildren && !isCollapsed && (
           <div className="relative">
             <div 
-              className="absolute left-[16px] top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-800"
-              style={{ left: `${level * 14 + 16}px` }}
+              className="absolute left-[14px] top-0 bottom-0 w-px bg-[#EAEAE5] dark:bg-[#2B2B28]"
+              style={{ left: `${level * 12 + 14}px` }}
             />
             {children.map((child) => renderDocNode(child, level + 1))}
           </div>
@@ -176,6 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const rootDocs = getChildren(null);
+  const activeTasksCount = docs.filter((d) => d.status === 'in_progress' || d.status === 'not_started').length;
 
   return (
     <>
@@ -183,222 +203,320 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isOpenMobile && (
         <div 
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
         />
       )}
 
-      {/* Main Sidebar Drawer */}
+      {/* Main Sidebar Drawer (Figma width: 224px, bg: #F8F8F6, border-r: #EAEAE5) */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-40 w-64 md:w-60 lg:w-64 h-screen bg-slate-50/95 dark:bg-slate-900/95 md:bg-slate-50/70 md:dark:bg-slate-900/60 border-r border-slate-200/80 dark:border-slate-800 flex flex-col shrink-0 select-none transition-transform duration-200 ease-in-out ${
+        className={`fixed md:static inset-y-0 left-0 z-40 w-[224px] min-w-[224px] max-w-[224px] h-screen bg-[#F8F8F6] dark:bg-[#181816] border-r border-[#EAEAE5] dark:border-[#2B2B28] flex flex-col justify-between p-[22px_12px_18px] select-none transition-transform duration-200 ease-in-out shrink-0 overflow-y-auto ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        {/* Workspace Brand Header */}
-        <div className="p-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shadow-indigo-500/30">
+        <div className="flex flex-col gap-6">
+          {/* 1. Identitas Workspace (Figma: Logo 28x28 #282925, Monogram 'N', Nama, Chevrons) */}
+          <div className="flex items-center justify-between px-2 h-7">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-[6px] bg-[#282925] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
                 N
               </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
-                  {t.appName}
-                </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[130px]">
-                  {t.tagline}
-                </div>
-              </div>
+              <span className="font-semibold text-sm text-[#282925] dark:text-[#EDEDE8] truncate">
+                Ruang Bersama
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <ChevronsUpDown size={14} className="text-[#777973] shrink-0" />
+              <button
+                onClick={onCloseMobile}
+                className="md:hidden p-1 text-[#777973] hover:text-[#282925]"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Menu Utama (Figma: Cari ⌘K, Kotak masuk 8, Ringkasan, Tugas saya 7) */}
+          <nav className="flex flex-col gap-[3px]">
+            {/* Quick Search */}
+            <div className="relative flex items-center px-2.5 h-9 rounded bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] transition-colors cursor-pointer group">
+              <Search size={16} className="text-[#777973] shrink-0 mr-2.5" />
+              <input
+                type="text"
+                placeholder="Cari..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-[13px] text-[#282925] dark:text-[#EDEDE8] placeholder-[#777973] focus:outline-none"
+              />
+              <span className="text-[11px] text-[#777973] shrink-0 group-hover:text-[#282925] font-mono">
+                ⌘K
+              </span>
             </div>
 
-            <div className="flex items-center gap-1">
+            {/* Kotak Masuk */}
+            <button
+              onClick={() => {
+                if (onOpenNotificationModal) onOpenNotificationModal();
+                onCloseMobile();
+              }}
+              className="flex items-center justify-between px-2.5 h-9 rounded bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <Inbox size={16} className="text-[#777973] shrink-0" />
+                <span className="text-[13px] font-normal">Kotak masuk</span>
+              </div>
+              <span className="text-[11px] text-[#777973]">8</span>
+            </button>
+
+            {/* Ringkasan (Overview) */}
+            <button
+              onClick={() => handleViewClick('overview')}
+              className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                activeView === 'overview'
+                  ? 'bg-[#EAEAE5] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                  : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Home size={16} className={activeView === 'overview' ? 'text-[#282925] dark:text-[#EDEDE8]' : 'text-[#777973]'} />
+                <span className="text-[13px]">Ringkasan</span>
+              </div>
+            </button>
+
+            {/* Tugas Saya */}
+            <button
+              onClick={() => handleViewClick('database_board')}
+              className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                activeView === 'database_board'
+                  ? 'bg-[#EAEAE5] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                  : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 size={16} className="text-[#777973]" />
+                <span className="text-[13px] font-normal">Tugas saya</span>
+              </div>
+              <span className="text-[11px] text-[#777973]">{activeTasksCount || 7}</span>
+            </button>
+          </nav>
+
+          {/* 3. Halaman Workspace (Figma: HALAMAN + Proyek aktif 4, Kalender kerja, Catatan & Dokumen, Tim & Kolaborator 5) */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between px-2.5">
+              <span className="text-[11px] font-medium text-[#A1A29B] tracking-wider uppercase">
+                Halaman
+              </span>
               <button
-                title={t.newDoc}
                 onClick={() => {
                   onCreateDoc(null);
                   onCloseMobile();
                 }}
-                className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                title="Halaman Baru"
+                className="text-[#777973] hover:text-[#282925] transition-colors"
               >
-                <Plus size={15} />
+                <Plus size={13} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-[3px]">
+              {/* Proyek Aktif */}
+              <button
+                onClick={() => handleViewClick('database_table')}
+                className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                  activeView === 'database_table'
+                    ? 'bg-[#EAEAE5] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                    : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FolderOpen size={16} className="text-[#777973] shrink-0" />
+                  <span className="text-[13px]">Proyek aktif</span>
+                </div>
+                <span className="text-[11px] text-[#777973]">{docs.length || 4}</span>
               </button>
 
-              {/* Mobile Close Button */}
+              {/* Kalender Kerja */}
               <button
-                onClick={onCloseMobile}
-                className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                onClick={() => handleViewClick('database_calendar')}
+                className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                  activeView === 'database_calendar'
+                    ? 'bg-[#EAEAE5] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                    : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                }`}
               >
-                <X size={16} />
+                <div className="flex items-center gap-2.5">
+                  <CalendarDays size={16} className="text-[#777973] shrink-0" />
+                  <span className="text-[13px]">Kalender kerja</span>
+                </div>
+              </button>
+
+              {/* Catatan & Dokumen */}
+              <button
+                onClick={() => {
+                  setShowDocTree(!showDocTree);
+                  if (activeView !== 'editor') handleViewClick('editor');
+                }}
+                className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                  activeView === 'editor'
+                    ? 'bg-[#EAEAE5] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                    : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText size={16} className="text-[#777973] shrink-0" />
+                  <span className="text-[13px]">Catatan & Dokumen</span>
+                </div>
+                {showDocTree ? <ChevronDown size={13} className="text-[#777973]" /> : <ChevronRight size={13} className="text-[#777973]" />}
+              </button>
+
+              {/* Nested Document Subtree */}
+              {showDocTree && (
+                <div className="pl-2 pr-1 py-1 flex flex-col gap-0.5 max-h-48 overflow-y-auto border-l border-[#EAEAE5] dark:border-[#2B2B28] ml-4 mt-0.5">
+                  {rootDocs.length > 0 ? (
+                    rootDocs.map((doc) => renderDocNode(doc, 0))
+                  ) : (
+                    <div className="text-[11px] text-[#A1A29B] px-2 py-1">Belum ada dokumen</div>
+                  )}
+                </div>
+              )}
+
+              {/* Tim & Kolaborator */}
+              <button
+                onClick={() => handleViewClick('analytics')}
+                className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                  activeView === 'analytics'
+                    ? 'bg-[#EAEAE5] dark:bg-[#2B2B28] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                    : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users size={16} className="text-[#777973] shrink-0" />
+                  <span className="text-[13px]">Tim & Kolaborator</span>
+                </div>
+                <span className="text-[11px] text-[#777973]">{collaborators.length || 5}</span>
               </button>
             </div>
           </div>
 
-          {/* Quick Search */}
-          <div className="mt-3 relative">
-            <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder={t.searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
+          {/* 4. Proyek Favorit (Figma: PROYEK FAVORIT + Platform Web, Aplikasi Mobile, Desain Sistem) */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-medium text-[#A1A29B] tracking-wider uppercase px-2.5">
+              Proyek Favorit
+            </span>
 
-        {/* Main Navigation Views */}
-        <div className="px-2 pt-2 pb-1 space-y-0.5 border-b border-slate-200 dark:border-slate-800">
-          <button
-            onClick={() => handleViewClick('database_table')}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeView === 'database_table'
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <Table size={14} className="text-indigo-500" />
-            <span>{t.tableView}</span>
-          </button>
+            <div className="flex flex-col gap-[3px]">
+              <button
+                onClick={() => handleViewClick('overview')}
+                className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
+              >
+                <Globe size={16} className="text-[#777973] shrink-0" />
+                <span className="text-[13px] truncate">Platform Web</span>
+              </button>
 
-          <button
-            onClick={() => handleViewClick('database_board')}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeView === 'database_board'
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <Kanban size={14} className="text-emerald-500" />
-            <span>{t.boardView}</span>
-          </button>
+              <button
+                onClick={() => handleViewClick('database_board')}
+                className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
+              >
+                <Smartphone size={16} className="text-[#777973] shrink-0" />
+                <span className="text-[13px] truncate">Aplikasi Mobile</span>
+              </button>
 
-          <button
-            onClick={() => handleViewClick('database_calendar')}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeView === 'database_calendar'
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <CalendarIcon size={14} className="text-amber-500" />
-            <span>{t.calendarView}</span>
-          </button>
+              <button
+                onClick={() => handleViewClick('database_table')}
+                className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
+              >
+                <Palette size={16} className="text-[#777973] shrink-0" />
+                <span className="text-[13px] truncate">Desain Sistem</span>
+              </button>
 
-          <button
-            onClick={() => handleViewClick('analytics')}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              activeView === 'analytics'
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-            }`}
-          >
-            <BarChart3 size={14} className="text-purple-500" />
-            <span>{t.analytics}</span>
-          </button>
-        </div>
-
-        {/* Hierarchical Document Tree */}
-        <div className="flex-1 overflow-y-auto px-1 py-2">
-          {favoriteDocs.length > 0 && !searchQuery && (
-            <div className="mb-3">
-              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                <Star size={11} className="text-amber-400" />
-                <span>{t.favorites}</span>
-              </div>
-              {favoriteDocs.map((doc) => (
-                <div
-                  key={`fav-${doc.id}`}
-                  onClick={() => handleDocClick(doc.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                    activeView === 'editor' && activeDocId === doc.id
-                      ? 'bg-slate-200/80 dark:bg-slate-800 text-slate-900 dark:text-white'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                  }`}
+              {favoriteDocs.map((fav) => (
+                <button
+                  key={fav.id}
+                  onClick={() => handleDocClick(fav.id)}
+                  className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
                 >
-                  <span>{doc.icon || '📄'}</span>
-                  <span className="truncate">{doc.title}</span>
-                </div>
+                  <span className="text-sm shrink-0">{fav.icon || '⭐'}</span>
+                  <span className="text-[13px] truncate">{fav.title}</span>
+                </button>
               ))}
             </div>
-          )}
-
-          {/* Workspace Documents Header */}
-          <div className="flex items-center justify-between px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            <span className="flex items-center gap-1">
-              <FolderTree size={11} />
-              <span>{t.allDocs} ({docs.length})</span>
-            </span>
-            <button
-              onClick={() => {
-                onCreateDoc(null);
-                onCloseMobile();
-              }}
-              className="hover:text-slate-700 dark:hover:text-slate-200"
-              title={t.newDoc}
-            >
-              <Plus size={13} />
-            </button>
-          </div>
-
-          {/* Tree List */}
-          <div className="mt-1 space-y-0.5">
-            {rootDocs.length > 0 ? (
-              rootDocs.map((doc) => renderDocNode(doc, 0))
-            ) : (
-              <div className="px-3 py-4 text-center text-xs text-slate-400">
-                {t.noSubPages}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Offline Status & Sync Footer */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900 text-xs">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+        {/* 5. Bottom Section: Ajakan Berkolaborasi Card & Pengaturan Akun */}
+        <div className="flex flex-col gap-4 pt-4 mt-4">
+          {/* Ajakan berkolaborasi Card (Figma: border 1px #EAEAE5, bg #FFF, padding 12px) */}
+          <div className="bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] p-3 flex flex-col gap-2">
+            <UserPlus size={18} className="text-[#282925] dark:text-[#EDEDE8]" />
+            <div className="text-xs font-semibold text-[#282925] dark:text-[#EDEDE8]">
+              Undang anggota tim
+            </div>
+            <p className="text-[11px] text-[#777973] dark:text-[#A1A29B] leading-relaxed">
+              Kolaborasi real-time lebih seru bersama rekan kerja Anda
+            </p>
             <button
-              onClick={onManualSync}
-              title="Klik untuk sinkronkan dengan database server sekarang"
-              className="flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+              onClick={handleInviteClick}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-[#282925] dark:text-[#EDEDE8] hover:underline pt-0.5 cursor-pointer text-left"
             >
-              {syncState.isOnline ? (
-                <Wifi size={13} className="text-emerald-500 shrink-0" />
-              ) : (
-                <WifiOff size={13} className="text-amber-500 shrink-0" />
-              )}
-              <span className="text-[11px] font-medium">
-                {syncState.isOnline
-                  ? syncState.isSyncing
-                    ? t.syncing
-                    : t.synced
-                  : t.offline}
-              </span>
-            </button>
-
-            <button
-              onClick={onManualSync}
-              className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <RefreshCw size={10} className={syncState.isSyncing ? 'animate-spin' : ''} />
-              <span>Sinkron</span>
+              <span>{copyFeedback ? 'Tautan disalin!' : 'Undang teman'}</span>
+              <ArrowRight size={12} className="text-[#777973]" />
             </button>
           </div>
 
-          {collaborators.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-[10px] text-slate-400">{t.collaborators}:</span>
-              <div className="flex -space-x-1.5">
-                {collaborators.slice(0, 4).map((c) => (
-                  <div
-                    key={c.userId}
-                    title={c.name}
-                    style={{ backgroundColor: c.color }}
-                    className="w-5 h-5 rounded-full border border-white dark:border-slate-900 text-white flex items-center justify-center text-[9px] font-bold uppercase shadow-xs"
-                  >
-                    {c.name.charAt(0)}
-                  </div>
-                ))}
+          {/* Pengaturan & Akun Aktif (Figma: settings-2, divider, avatar 30px #ECEAE4, Nabila A., Anggota aktif) */}
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={() => handleViewClick('analytics')}
+              className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
+            >
+              <Settings2 size={16} className="text-[#777973] shrink-0" />
+              <span className="text-[13px]">Pengaturan</span>
+            </button>
+
+            {/* Pemisah */}
+            <div className="h-px bg-[#EAEAE5] dark:bg-[#2B2B28] w-full" />
+
+            {/* Akun Aktif Row */}
+            <div className="flex items-center justify-between px-1.5 py-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <div 
+                  style={{ backgroundColor: userProfile.color || '#ECEAE4' }}
+                  className="w-[30px] h-[30px] rounded-full border-2 border-white dark:border-[#181816] flex items-center justify-center text-[11px] font-semibold text-white shadow-xs shrink-0"
+                >
+                  {userProfile.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() || 'NA'}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-medium text-[#282925] dark:text-[#EDEDE8] truncate">
+                    {userProfile.name || 'Nabila A.'}
+                  </span>
+                  <span className="text-[10px] text-[#777973]">
+                    Anggota aktif
+                  </span>
+                </div>
               </div>
+              <ChevronsUpDown size={14} className="text-[#777973] shrink-0" />
             </div>
-          )}
+
+            {/* Sync connection status mini indicator */}
+            <div className="flex items-center justify-between px-1.5 pt-1 text-[10px] text-[#A1A29B]">
+              <button
+                onClick={onManualSync}
+                className="flex items-center gap-1 hover:text-[#282925] cursor-pointer"
+              >
+                {syncState.isOnline ? (
+                  <Wifi size={11} className="text-emerald-500" />
+                ) : (
+                  <WifiOff size={11} className="text-amber-500" />
+                )}
+                <span>{syncState.isSyncing ? 'Sinkron...' : syncState.isOnline ? 'Tersambung' : 'Offline'}</span>
+              </button>
+              <button
+                onClick={onManualSync}
+                className="hover:text-[#282925] cursor-pointer"
+              >
+                <RefreshCw size={10} className={syncState.isSyncing ? 'animate-spin' : ''} />
+              </button>
+            </div>
+          </div>
         </div>
       </aside>
     </>

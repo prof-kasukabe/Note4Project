@@ -10,8 +10,9 @@ import {
   Globe, 
   Download, 
   Upload, 
-  ChevronRight, 
-  Menu
+  PanelLeft,
+  Share2,
+  Check
 } from 'lucide-react';
 import { DocItem, ActiveView, ThemeMode, Language, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
@@ -71,10 +72,11 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [editedName, setEditedName] = useState(userProfile?.name || 'Randye');
+  const [editedName, setEditedName] = useState(userProfile?.name || 'Nabila A.');
   const [selectedColor, setSelectedColor] = useState(userProfile?.color || '#6366F1');
+  const [shareCopied, setShareCopied] = useState(false);
 
-  // Compute breadcrumbs
+  // Compute breadcrumbs for editor view
   const breadcrumbs: DocItem[] = [];
   if (activeDoc) {
     let curr: DocItem | undefined = activeDoc;
@@ -86,6 +88,12 @@ export const TopBar: React.FC<TopBarProps> = ({
     }
   }
 
+  const handleShareClick = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  };
+
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -94,170 +102,216 @@ export const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
+  // Active view label in Indonesian
+  const getViewLabel = () => {
+    switch (activeView) {
+      case 'overview':
+        return 'Ringkasan';
+      case 'database_table':
+        return 'Tabel Proyek';
+      case 'database_board':
+        return 'Papan Kanban';
+      case 'database_calendar':
+        return 'Kalender Kerja';
+      case 'analytics':
+        return 'Analisis Produktivitas';
+      case 'editor':
+        return activeDoc?.title || 'Dokumen';
+      default:
+        return 'Ringkasan';
+    }
+  };
+
   return (
-    <header className="h-14 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 sm:px-4 flex items-center justify-between gap-3 shrink-0 select-none z-20">
-      {/* Zone 1: Mobile Hamburger & Breadcrumb Trail */}
-      <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
-        {/* Mobile menu trigger */}
+    <header className="h-16 min-h-[64px] max-h-[64px] bg-white dark:bg-[#121211] border-b border-[#EAEAE5] dark:border-[#2B2B28] px-4 md:px-8 flex items-center justify-between gap-4 shrink-0 select-none z-20">
+      {/* 1. Jejak Halaman (Figma: panel-left, Workspace / Ruang Bersama, pemisah '/', halaman aktif) */}
+      <div className="flex items-center gap-2.5 text-xs text-[#777973] min-w-0">
         <button
           onClick={onToggleMobileSidebar}
-          className="md:hidden p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
-          title="Buka Menu"
+          className="p-1.5 -ml-1.5 rounded hover:bg-[#F2F2EE] dark:hover:bg-[#232320] text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] transition-colors shrink-0"
+          title="Toggle Navigasi"
         >
-          <Menu size={18} />
+          <PanelLeft size={16} />
         </button>
 
-        <span 
-          onClick={() => onSelectView('database_table')}
-          className="hover:text-slate-900 dark:hover:text-white cursor-pointer font-medium whitespace-nowrap shrink-0 hidden sm:inline"
-        >
-          {t.appName}
-        </span>
+        <div className="flex items-center gap-2 truncate">
+          <button
+            onClick={() => onSelectView('overview')}
+            className="text-xs text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] transition-colors whitespace-nowrap"
+          >
+            Ruang Bersama
+          </button>
 
-        {activeView === 'editor' && breadcrumbs.length > 0 ? (
-          breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={crumb.id}>
-              <ChevronRight size={12} className="shrink-0 text-slate-300 dark:text-slate-600" />
-              <button
-                onClick={() => onSelectDoc(crumb.id)}
-                className={`truncate max-w-[90px] sm:max-w-[140px] md:max-w-[200px] hover:text-slate-900 dark:hover:text-white ${
-                  idx === breadcrumbs.length - 1 ? 'font-semibold text-slate-900 dark:text-slate-100' : ''
-                }`}
-              >
-                <span className="mr-1">{crumb.icon || '📄'}</span>
-                {crumb.title || t.emptyTitle}
-              </button>
-            </React.Fragment>
-          ))
-        ) : (
-          <>
-            <ChevronRight size={12} className="shrink-0 text-slate-300 dark:text-slate-600 hidden sm:inline" />
-            <span className="font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap truncate max-w-[120px] sm:max-w-none">
-              {activeView === 'database_table' && t.tableView}
-              {activeView === 'database_board' && t.boardView}
-              {activeView === 'database_calendar' && t.calendarView}
-              {activeView === 'analytics' && t.analytics}
+          <span className="text-[#A1A29B] text-xs">/</span>
+
+          {activeView === 'editor' && breadcrumbs.length > 0 ? (
+            <div className="flex items-center gap-1.5 truncate">
+              {breadcrumbs.map((crumb, idx) => (
+                <React.Fragment key={crumb.id}>
+                  {idx > 0 && <span className="text-[#A1A29B] text-xs">/</span>}
+                  <button
+                    onClick={() => onSelectDoc(crumb.id)}
+                    className={`truncate text-xs hover:text-[#282925] dark:hover:text-[#EDEDE8] ${
+                      idx === breadcrumbs.length - 1 ? 'font-medium text-[#282925] dark:text-[#EDEDE8]' : 'text-[#777973]'
+                    }`}
+                  >
+                    {crumb.icon && <span className="mr-1">{crumb.icon}</span>}
+                    {crumb.title || t.emptyTitle}
+                  </button>
+                </React.Fragment>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs font-medium text-[#282925] dark:text-[#EDEDE8] truncate">
+              {getViewLabel()}
             </span>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Zone 2: Collaborators & Right Utility Controls */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* Real-time Database Connectivity Indicator & Quick Sync Trigger */}
+      {/* 2. Aksi Halaman (Figma: Sinkronisasi, Anggota Avatar Stack, Tombol 'Bagikan', + utilitas) */}
+      <div className="flex items-center gap-3 shrink-0">
+        {/* Sinkronisasi status */}
         <button
           onClick={onManualSync}
-          title="Status database terhubung. Klik untuk sinkronisasi paksa sekarang."
-          className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${
-            isOnline
-              ? isSyncing
-                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300'
-                : 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
-              : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500'
-          }`}
+          title="Sinkronisasi database otomatis. Klik untuk sinkron ulang sekarang."
+          className="hidden sm:flex items-center gap-1.5 text-[11px] text-[#A1A29B] hover:text-[#282925] dark:hover:text-[#EDEDE8] transition-colors cursor-pointer"
         >
-          <span className={`w-2 h-2 rounded-full shrink-0 ${isSyncing ? 'bg-amber-500 animate-spin' : isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-          <span className="whitespace-nowrap hidden sm:inline">
-            {isSyncing ? 'Menyinkronkan...' : isOnline ? 'Database Terhubung' : 'Offline'}
-          </span>
-          <span className="whitespace-nowrap sm:hidden">
-            {isSyncing ? 'Sync...' : isOnline ? 'Tersambung' : 'Offline'}
+          <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-500 animate-spin' : isOnline ? 'bg-emerald-500' : 'bg-[#A1A29B]'}`} />
+          <span>
+            {isSyncing ? 'Menyinkronkan...' : isOnline ? 'Tersinkronisasi otomatis' : 'Offline'}
           </span>
         </button>
 
-        {/* Real-time Collaboration Pill */}
-        {collaborators.length > 0 && (
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/60 text-[11px] text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{collaborators.length} {t.collaborators.toLowerCase()}</span>
+        {/* Anggota Workspace Avatar Stack (Figma: overlapping avatars #ECEAE4, #EEE3DF, #E2E8EE, #E3EBE3) */}
+        <div className="hidden md:flex items-center -space-x-1.5">
+          <div 
+            title="Nabila A. (Online)"
+            className="w-[27px] h-[27px] rounded-full border-2 border-white dark:border-[#121211] bg-[#ECEAE4] flex items-center justify-center text-[9px] font-semibold text-[#777973] shadow-xs"
+          >
+            NA
           </div>
-        )}
+          <div 
+            title="Budi Pratama (Online)"
+            className="w-[27px] h-[27px] rounded-full border-2 border-white dark:border-[#121211] bg-[#EEE3DF] flex items-center justify-center text-[9px] font-semibold text-[#777973] shadow-xs"
+          >
+            BP
+          </div>
+          <div 
+            title="Dina Amelia (Online)"
+            className="w-[27px] h-[27px] rounded-full border-2 border-white dark:border-[#121211] bg-[#E2E8EE] flex items-center justify-center text-[9px] font-semibold text-[#777973] shadow-xs"
+          >
+            DA
+          </div>
+          <div 
+            title="Rian Maulana (Online)"
+            className="w-[27px] h-[27px] rounded-full border-2 border-white dark:border-[#121211] bg-[#E3EBE3] flex items-center justify-center text-[9px] font-semibold text-[#777973] shadow-xs"
+          >
+            RM
+          </div>
+          {collaborators.length > 4 && (
+            <div className="w-[27px] h-[27px] rounded-full border-2 border-white dark:border-[#121211] bg-[#F4F4F0] flex items-center justify-center text-[9px] font-semibold text-[#777973]">
+              +{collaborators.length - 4}
+            </div>
+          )}
+        </div>
 
-        {/* E2EE Vault Action Button */}
+        {/* Tombol Bagikan (Figma: 34px, border #EAEAE5, bg #FFF, share-2 icon, 'Bagikan') */}
         <button
-          onClick={onOpenEncryptionModal}
-          title={isVaultUnlocked ? t.e2eeUnlocked : t.e2eeLocked}
-          className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-            isVaultUnlocked
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
-          }`}
+          onClick={handleShareClick}
+          className="flex items-center gap-1.5 h-[34px] px-3 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] text-xs font-medium text-[#282925] dark:text-[#EDEDE8] hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors cursor-pointer"
         >
-          {isVaultUnlocked ? <Unlock size={13} /> : <Lock size={13} />}
-          <span className="hidden md:inline whitespace-nowrap">{t.encryptedVault}</span>
-        </button>
-
-        {/* Time Reminder Notification Bell */}
-        <button
-          onClick={onOpenNotificationModal}
-          title={t.reminders}
-          className="relative p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          <Bell size={16} />
-          {unreadRemindersCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
-              {unreadRemindersCount}
-            </span>
+          {shareCopied ? (
+            <>
+              <Check size={14} className="text-emerald-600" />
+              <span>Disalin!</span>
+            </>
+          ) : (
+            <>
+              <Share2 size={14} className="text-[#777973]" />
+              <span>Bagikan</span>
+            </>
           )}
         </button>
 
-        {/* Theme Picker Dropdown */}
+        {/* E2EE Vault Button */}
+        <button
+          onClick={onOpenEncryptionModal}
+          title={isVaultUnlocked ? t.e2eeUnlocked : t.e2eeLocked}
+          className="p-2 rounded-[6px] text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] transition-colors"
+        >
+          {isVaultUnlocked ? <Unlock size={15} className="text-emerald-600" /> : <Lock size={15} />}
+        </button>
+
+        {/* Reminders Bell */}
+        <button
+          onClick={onOpenNotificationModal}
+          title="Pengingat"
+          className="relative p-2 rounded-[6px] text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] transition-colors"
+        >
+          <Bell size={15} />
+          {unreadRemindersCount > 0 && (
+            <span className="absolute 1 top-1 right-1 w-2 h-2 rounded-full bg-rose-500" />
+          )}
+        </button>
+
+        {/* Theme Menu */}
         <div className="relative">
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            title={t.theme}
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Tema Tampilan"
+            className="p-2 rounded-[6px] text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] transition-colors"
           >
-            {theme === 'light' && <Sun size={16} />}
-            {theme === 'dark' && <Moon size={16} />}
-            {theme === 'oled' && <Monitor size={16} />}
-            {theme === 'sepia' && <Coffee size={16} />}
+            {theme === 'light' && <Sun size={15} />}
+            {theme === 'dark' && <Moon size={15} />}
+            {theme === 'oled' && <Monitor size={15} />}
+            {theme === 'sepia' && <Coffee size={15} />}
           </button>
 
           {showThemeMenu && (
             <div 
               onMouseLeave={() => setShowThemeMenu(false)}
-              className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 z-50 text-xs text-slate-700 dark:text-slate-200 animate-in fade-in"
+              className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] shadow-lg py-1 z-50 text-xs text-[#282925] dark:text-[#EDEDE8] animate-in fade-in"
             >
               <button
                 onClick={() => { onToggleTheme('light'); setShowThemeMenu(false); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors"
               >
-                <Sun size={14} className="text-amber-500" />
-                <span>{t.themeLight}</span>
+                <Sun size={13} className="text-amber-500" />
+                <span>Terang</span>
               </button>
               <button
                 onClick={() => { onToggleTheme('dark'); setShowThemeMenu(false); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors"
               >
-                <Moon size={14} className="text-indigo-400" />
-                <span>{t.themeDark}</span>
+                <Moon size={13} className="text-indigo-400" />
+                <span>Gelap</span>
               </button>
               <button
                 onClick={() => { onToggleTheme('oled'); setShowThemeMenu(false); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors"
               >
-                <Monitor size={14} className="text-slate-400" />
-                <span>{t.themeOled}</span>
+                <Monitor size={13} className="text-[#777973]" />
+                <span>OLED</span>
               </button>
               <button
                 onClick={() => { onToggleTheme('sepia'); setShowThemeMenu(false); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors"
               >
-                <Coffee size={14} className="text-amber-700" />
-                <span>{t.themeSepia}</span>
+                <Coffee size={13} className="text-amber-700" />
+                <span>Sepia</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* Language Toggle (ID / EN) */}
+        {/* Language Selector */}
         <button
           onClick={() => onToggleLanguage(lang === 'id' ? 'en' : 'id')}
-          title={lang === 'id' ? 'Beralih ke English' : 'Switch to Bahasa Indonesia'}
-          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          title="Ganti Bahasa"
+          className="flex items-center gap-1 px-2 py-1 rounded-[6px] text-xs font-semibold text-[#777973] hover:text-[#282925] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] transition-colors"
         >
-          <Globe size={14} />
+          <Globe size={13} />
           <span className="uppercase">{lang}</span>
         </button>
 
@@ -265,34 +319,34 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="relative">
           <button
             onClick={() => setShowExportMenu(!showExportMenu)}
-            title="Export / Import"
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Ekspor / Impor"
+            className="p-2 rounded-[6px] text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] transition-colors"
           >
-            <Download size={16} />
+            <Download size={15} />
           </button>
 
           {showExportMenu && (
             <div 
               onMouseLeave={() => setShowExportMenu(false)}
-              className="absolute right-0 mt-1.5 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 z-50 text-xs text-slate-700 dark:text-slate-200 animate-in fade-in"
+              className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] shadow-lg py-1 z-50 text-xs text-[#282925] dark:text-[#EDEDE8] animate-in fade-in"
             >
               <button
                 onClick={() => { onExportMarkdown(); setShowExportMenu(false); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors"
               >
-                <Download size={13} className="text-indigo-500" />
-                <span>{t.exportMarkdown}</span>
+                <Download size={13} className="text-[#777973]" />
+                <span>Ekspor Markdown</span>
               </button>
               <button
                 onClick={() => { onExportJson(); setShowExportMenu(false); }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors"
               >
-                <Download size={13} className="text-emerald-500" />
-                <span>{t.exportJson}</span>
+                <Download size={13} className="text-[#777973]" />
+                <span>Ekspor JSON</span>
               </button>
-              <label className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-                <Upload size={13} className="text-amber-500" />
-                <span>{t.importJson}</span>
+              <label className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors cursor-pointer">
+                <Upload size={13} className="text-[#777973]" />
+                <span>Impor Backup</span>
                 <input
                   type="file"
                   accept=".json,.md"
@@ -303,7 +357,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
           )}
         </div>
-        {/* User Profile Pill & Collaborator Identity Switcher */}
+
+        {/* User Contributor Profile Pill */}
         {userProfile && (
           <div className="relative">
             <button
@@ -312,51 +367,46 @@ export const TopBar: React.FC<TopBarProps> = ({
                 setSelectedColor(userProfile.color);
                 setShowProfileMenu(!showProfileMenu);
               }}
-              title={`Profil Pengguna: ${userProfile.name}. Klik untuk ubah nama atau warna kontributor.`}
-              className="flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/60 dark:border-slate-700/60 cursor-pointer"
+              title={`Profil Kontributor: ${userProfile.name}. Klik untuk ubah nama pengubah status.`}
+              className="flex items-center gap-1.5 p-1 rounded-full hover:bg-[#F2F2EE] dark:hover:bg-[#232320] transition-colors cursor-pointer"
             >
               <div
-                style={{ backgroundColor: userProfile.color }}
-                className="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0 shadow-xs ring-1 ring-white dark:ring-slate-900"
+                style={{ backgroundColor: userProfile.color || '#6366F1' }}
+                className="w-[26px] h-[26px] rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0 shadow-xs"
               >
                 {userProfile.name.charAt(0).toUpperCase()}
               </div>
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline max-w-[85px] truncate">
-                {userProfile.name}
-              </span>
             </button>
 
             {showProfileMenu && (
               <div 
-                className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-3 z-50 text-xs text-slate-800 dark:text-slate-200"
+                className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] shadow-2xl p-3 z-50 text-xs text-[#282925] dark:text-[#EDEDE8]"
               >
-                <div className="font-bold text-slate-900 dark:text-white mb-1">
-                  {lang === 'id' ? 'Profil Kontributor Anda' : 'Your Contributor Profile'}
+                <div className="font-semibold text-sm mb-1 text-[#282925] dark:text-[#EDEDE8]">
+                  Profil Kontributor
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-                  {lang === 'id' 
-                    ? 'Nama ini dicatat pada audit log saat Anda mengubah status tugas.' 
-                    : 'This name is recorded in audit logs when you update task status.'}
+                <p className="text-[11px] text-[#777973] mb-2.5">
+                  Nama Anda dicatat pada audit log saat memperbarui progres proyek atau status halaman.
                 </p>
 
                 <div className="space-y-2.5">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                      {lang === 'id' ? 'Nama Tampilan' : 'Display Name'}
+                    <label className="text-[10px] font-medium uppercase tracking-wider text-[#A1A29B] block mb-1">
+                      Nama Tampilan
                     </label>
                     <input
                       type="text"
                       value={editedName}
                       onChange={(e) => setEditedName(e.target.value)}
-                      placeholder="e.g. Randye (Laptop)"
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      placeholder="e.g. Nabila A."
+                      className="w-full px-2.5 py-1.5 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] text-xs text-[#282925] dark:text-[#EDEDE8] focus:outline-none"
                       maxLength={25}
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                      {lang === 'id' ? 'Warna Avatar' : 'Avatar Color'}
+                    <label className="text-[10px] font-medium uppercase tracking-wider text-[#A1A29B] block mb-1">
+                      Warna Avatar
                     </label>
                     <div className="flex items-center gap-1.5">
                       {['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EF4444'].map((col) => (
@@ -366,7 +416,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                           onClick={() => setSelectedColor(col)}
                           style={{ backgroundColor: col }}
                           className={`w-5 h-5 rounded-full transition-transform cursor-pointer ${
-                            selectedColor === col ? 'scale-125 ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'
+                            selectedColor === col ? 'scale-125 ring-2 ring-[#282925] dark:ring-white ring-offset-1' : 'opacity-80 hover:opacity-100'
                           }`}
                         />
                       ))}
@@ -377,7 +427,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowProfileMenu(false)}
-                      className="px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="px-2.5 py-1 text-[#777973] hover:text-[#282925]"
                     >
                       Batal
                     </button>
@@ -389,7 +439,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                         }
                         setShowProfileMenu(false);
                       }}
-                      className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
+                      className="px-3 py-1 rounded-[4px] bg-[#282925] hover:bg-[#3E3F3B] text-white font-medium shadow-xs"
                     >
                       Simpan
                     </button>

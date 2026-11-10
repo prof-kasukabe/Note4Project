@@ -30,7 +30,8 @@ import {
   subscribeToWorkspace, 
   saveDocToFirestore, 
   deleteDocFromFirestore, 
-  seedFirestoreIfEmpty 
+  seedFirestoreIfEmpty,
+  testFirestoreConnection
 } from './services/firestoreSync';
 import { encryptText, decryptText } from './utils/crypto';
 import { Sidebar } from './components/Sidebar';
@@ -40,12 +41,14 @@ import { DatabaseView } from './components/DatabaseView';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { EncryptionModal } from './components/EncryptionModal';
 import { NotificationModal } from './components/NotificationModal';
+import { WorkspaceOverview } from './components/WorkspaceOverview';
 import { 
   FileText, 
   Table, 
   Kanban, 
   Calendar as CalendarIcon, 
-  BarChart3 
+  BarChart3,
+  Home
 } from 'lucide-react';
 
 export default function App() {
@@ -75,7 +78,7 @@ export default function App() {
   });
 
   // Active view state
-  const [activeView, setActiveView] = useState<ActiveView>('editor');
+  const [activeView, setActiveView] = useState<ActiveView>('overview');
 
   // Mobile sidebar drawer state
   const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
@@ -208,7 +211,8 @@ export default function App() {
 
   // Real-time Cloud Firestore subscription + background server polling
   useEffect(() => {
-    // 1. Initialize Firestore seed if collection is empty
+    // 1. Test live Firestore connection and initialize seed if collection is empty
+    testFirestoreConnection();
     seedFirestoreIfEmpty(INITIAL_DOCS);
 
     // 2. Subscribe to real-time Cloud Firestore updates (active across all devices simultaneously)
@@ -850,6 +854,8 @@ export default function App() {
         onDuplicateDoc={handleDuplicateDoc}
         onToggleFavorite={handleToggleFavorite}
         onManualSync={handleManualSyncNow}
+        userProfile={userProfile}
+        onOpenNotificationModal={() => setShowNotificationModal(true)}
       />
 
       {/* Main Viewport Container */}
@@ -883,6 +889,19 @@ export default function App() {
 
         {/* View Routing */}
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {activeView === 'overview' && (
+            <WorkspaceOverview
+              docs={docs}
+              lang={lang}
+              collaborators={collaborators}
+              userProfile={userProfile}
+              onSelectDoc={handleSelectDoc}
+              onSelectView={setActiveView}
+              onCreateDoc={handleCreateDoc}
+              onUpdateDoc={handleUpdateDocById}
+            />
+          )}
+
           {activeView === 'editor' && activeDoc && (
             <DocumentEditor
               doc={activeDoc}
@@ -944,7 +963,19 @@ export default function App() {
       </div>
 
       {/* Mobile Bottom Navigation Bar (< md) for fast view switching */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-30 flex items-center justify-around px-2">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-[#121211]/95 backdrop-blur-md border-t border-[#EAEAE5] dark:border-[#2B2B28] z-30 flex items-center justify-around px-2">
+        <button
+          onClick={() => setActiveView('overview')}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'overview'
+              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+              : 'text-[#777973]'
+          }`}
+        >
+          <Home size={17} />
+          <span>Ringkasan</span>
+        </button>
+
         <button
           onClick={() => {
             setActiveView('editor');
@@ -952,8 +983,8 @@ export default function App() {
           }}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'editor'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+              : 'text-[#777973]'
           }`}
         >
           <FileText size={17} />
@@ -964,8 +995,8 @@ export default function App() {
           onClick={() => setActiveView('database_table')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_table'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+              : 'text-[#777973]'
           }`}
         >
           <Table size={17} />
@@ -976,8 +1007,8 @@ export default function App() {
           onClick={() => setActiveView('database_board')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_board'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+              : 'text-[#777973]'
           }`}
         >
           <Kanban size={17} />
@@ -988,24 +1019,12 @@ export default function App() {
           onClick={() => setActiveView('database_calendar')}
           className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_calendar'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+              : 'text-[#777973]'
           }`}
         >
           <CalendarIcon size={17} />
           <span>Kalender</span>
-        </button>
-
-        <button
-          onClick={() => setActiveView('analytics')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'analytics'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-          }`}
-        >
-          <BarChart3 size={17} />
-          <span>Analitik</span>
         </button>
       </nav>
 
