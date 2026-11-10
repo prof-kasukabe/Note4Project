@@ -42,6 +42,7 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { EncryptionModal } from './components/EncryptionModal';
 import { NotificationModal } from './components/NotificationModal';
 import { WorkspaceOverview } from './components/WorkspaceOverview';
+import { ProjectWebDetail } from './components/ProjectWebDetail';
 import { 
   FileText, 
   Table, 
@@ -957,6 +958,20 @@ export default function App() {
             <AnalyticsDashboard
               docs={docs}
               lang={lang}
+            />
+          )}
+
+          {activeView === 'project_web' && (
+            <ProjectWebDetail
+              docs={docs}
+              lang={lang}
+              collaborators={collaborators}
+              userProfile={userProfile}
+              onSelectDoc={handleSelectDoc}
+              onUpdateDoc={handleUpdateDocById}
+              onCreateDoc={handleCreateDoc}
+              onSelectView={setActiveView}
+              onToggleFavorite={handleToggleFavorite}
             />
           )}
         </main>

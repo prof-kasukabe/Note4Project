@@ -405,10 +405,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <div className="flex flex-col gap-[3px]">
               <button
-                onClick={() => handleViewClick('overview')}
-                className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
+                onClick={() => handleViewClick('project_web')}
+                className={`flex items-center gap-2.5 px-2.5 h-9 rounded-[5px] transition-colors text-left ${
+                  activeView === 'project_web'
+                    ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                    : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                }`}
               >
-                <Globe size={16} className="text-[#777973] shrink-0" />
+                <Globe size={16} className={activeView === 'project_web' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
                 <span className="text-[13px] truncate">Platform Web</span>
               </button>
 

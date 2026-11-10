@@ -115,6 +115,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         return 'Kalender Kerja';
       case 'analytics':
         return 'Analisis Produktivitas';
+      case 'project_web':
+        return 'Website portofolio';
       case 'editor':
         return activeDoc?.title || 'Dokumen';
       default:

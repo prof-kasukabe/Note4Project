@@ -437,7 +437,13 @@ export const WorkspaceOverview: React.FC<WorkspaceOverviewProps> = ({
                   return (
                     <div
                       key={doc.id}
-                      onClick={() => onSelectDoc(doc.id)}
+                      onClick={() => {
+                        if (doc.id === 'doc-portfolio-web' || (doc.title && doc.title.toLowerCase().includes('website portofolio'))) {
+                          onSelectView('project_web');
+                        } else {
+                          onSelectDoc(doc.id);
+                        }
+                      }}
                       className="h-15 px-3 flex items-center hover:bg-[#F8F8F6]/80 dark:hover:bg-[#1A1A18] transition-colors group cursor-pointer"
                     >
                       {/* Project Identity */}
@@ -552,7 +558,13 @@ export const WorkspaceOverview: React.FC<WorkspaceOverviewProps> = ({
                     {column.docs.map((item, i) => (
                       <div
                         key={item.id}
-                        onClick={() => onSelectDoc(item.id)}
+                        onClick={() => {
+                          if (item.id === 'doc-portfolio-web' || (item.title && item.title.toLowerCase().includes('website portofolio'))) {
+                            onSelectView('project_web');
+                          } else {
+                            onSelectDoc(item.id);
+                          }
+                        }}
                         className="p-3 bg-white dark:bg-[#20201E] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-md shadow-2xs hover:shadow-xs transition-shadow cursor-pointer space-y-2"
                       >
                         <div className="flex items-center gap-2">

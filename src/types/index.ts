@@ -2,7 +2,7 @@ export type DocStatus = 'not_started' | 'in_progress' | 'completed' | 'archived'
 export type DocPriority = 'low' | 'medium' | 'high';
 export type ThemeMode = 'light' | 'dark' | 'oled' | 'sepia';
 export type Language = 'id' | 'en';
-export type ActiveView = 'overview' | 'editor' | 'database_table' | 'database_board' | 'database_calendar' | 'analytics' | 'trash';
+export type ActiveView = 'overview' | 'editor' | 'database_table' | 'database_board' | 'database_calendar' | 'analytics' | 'trash' | 'project_web';
 
 export interface ContentBlock {
   id: string;

@@ -30,6 +30,55 @@ export const COVER_PRESETS = [
 
 export const INITIAL_DOCS: DocItem[] = [
   {
+    id: 'doc-portfolio-web',
+    title: 'Website portofolio',
+    icon: '🌐',
+    parentId: null,
+    tags: ['Website', 'Desain & Pengembangan'],
+    status: 'in_progress',
+    priority: 'medium',
+    deadline: '2026-11-13',
+    createdAt: Date.now() - 86400000 * 7,
+    updatedAt: Date.now() - 1800000,
+    isFavorite: true,
+    lastModifiedBy: {
+      userId: 'u_andi',
+      name: 'Andi Darma',
+      color: '#6366F1',
+      timestamp: Date.now() - 1800000,
+      action: 'Memperbarui dokumen Website Portofolio',
+    },
+    statusHistory: [
+      {
+        id: 'sh-pw-1',
+        fromStatus: 'not_started',
+        toStatus: 'in_progress',
+        changedBy: { userId: 'u_andi', name: 'Andi Darma', color: '#6366F1' },
+        timestamp: Date.now() - 86400000 * 3,
+      },
+    ],
+    content: `# 🌐 Website Portofolio
+
+**Kategori:** Website · Desain & Pengembangan  
+**Penanggung Jawab:** Andi Darma  
+**Tenggat:** 13 November 2026  
+
+Ruang untuk menampilkan karya, cerita, dan hal yang kamu kerjakan. Fokus pada pengalaman yang ringan, responsif, dan mudah diperbarui.
+
+---
+
+### 🎯 Hasil yang Dituju
+- [ ] Halaman utama & profil
+- [ ] Studi kasus & kontak
+- [x] Website responsif di seluruh perangkat
+
+### 🛠️ Alat Kerja Terhubung
+- **Figma**: Desain UI & prototipe
+- **GitHub**: Repositori & review perubahan
+- **Vercel**: Preview & publikasi website
+`,
+  },
+  {
     id: 'doc-roadmap',
     title: 'Peta Jalan Produk 2026 (Product Roadmap)',
     icon: '🚀',
