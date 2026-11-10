@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { DocItem, DocStatus, DocPriority, ActiveView, Language } from '../types';
 import { translations } from '../utils/i18n';
+import { formatTimeAgo } from '../utils/formatTime';
 
 interface DatabaseViewProps {
   docs: DocItem[];
@@ -170,6 +171,7 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                   <tr className="bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
                     <th className="py-3 px-4 min-w-[220px]">Catatan / Judul</th>
                     <th className="py-3 px-3 min-w-[130px]">{t.status}</th>
+                    <th className="py-3 px-3 min-w-[140px]">{lang === 'id' ? 'Diubah Oleh' : 'Updated By'}</th>
                     <th className="py-3 px-3 min-w-[110px]">{t.priority}</th>
                     <th className="py-3 px-3 min-w-[140px]">{t.tags}</th>
                     <th className="py-3 px-3 min-w-[130px]">{t.deadline}</th>
@@ -210,6 +212,33 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                           <option value="completed">{t.completed}</option>
                           <option value="archived">{t.archived}</option>
                         </select>
+                      </td>
+
+                      {/* Last Modified By (Audit Tracker) */}
+                      <td className="py-2.5 px-3" onClick={(e) => e.stopPropagation()}>
+                        {doc.lastModifiedBy ? (
+                          <div 
+                            className="flex items-center gap-1.5"
+                            title={`${doc.lastModifiedBy.action || 'Diperbarui'} (${new Date(doc.lastModifiedBy.timestamp).toLocaleString()})`}
+                          >
+                            <div
+                              style={{ backgroundColor: doc.lastModifiedBy.color }}
+                              className="w-5 h-5 rounded-full text-white text-[9px] font-bold flex items-center justify-center shrink-0 shadow-xs"
+                            >
+                              {doc.lastModifiedBy.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-medium text-slate-800 dark:text-slate-200 block truncate max-w-[100px]">
+                                {doc.lastModifiedBy.name}
+                              </span>
+                              <span className="text-[9px] text-slate-400 block truncate">
+                                {formatTimeAgo(doc.lastModifiedBy.timestamp, lang)}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic">-</span>
+                        )}
                       </td>
 
                       {/* Priority */}
@@ -340,8 +369,31 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                           </div>
                         )}
 
+                        {/* Who updated status audit badge */}
+                        {item.lastModifiedBy && (
+                          <div 
+                            className="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-1 text-[10px]"
+                            title={`${item.lastModifiedBy.action || 'Diperbarui'} oleh ${item.lastModifiedBy.name} pada ${new Date(item.lastModifiedBy.timestamp).toLocaleTimeString()}`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div
+                                style={{ backgroundColor: item.lastModifiedBy.color }}
+                                className="w-4 h-4 rounded-full text-white text-[8px] font-bold flex items-center justify-center shrink-0 shadow-xs"
+                              >
+                                {item.lastModifiedBy.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="truncate text-slate-600 dark:text-slate-300 font-medium">
+                                {item.lastModifiedBy.name}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-400 shrink-0 font-mono">
+                              {formatTimeAgo(item.lastModifiedBy.timestamp, lang)}
+                            </span>
+                          </div>
+                        )}
+
                         {/* Card footer: Deadline and Move status action */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 text-[10px] text-slate-400">
+                        <div className="flex items-center justify-between pt-1.5 text-[10px] text-slate-400">
                           {item.deadline ? (
                             <span className="flex items-center gap-1 font-mono">
                               <Calendar size={11} />

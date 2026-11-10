@@ -5,7 +5,8 @@ import {
   ThemeMode, 
   Language, 
   SyncState, 
-  Collaborator 
+  Collaborator,
+  StatusChangeLog
 } from './types';
 import { translations } from './utils/i18n';
 import { INITIAL_DOCS } from './utils/seedData';
@@ -16,6 +17,7 @@ import {
   saveActiveDocId,
   subscribeToCrossTab,
   getUserProfile,
+  saveUserProfile,
   addToSyncQueue,
   clearSyncQueue
 } from './utils/storage';
@@ -100,7 +102,17 @@ export default function App() {
   const [unreadRemindersCount, setUnreadRemindersCount] = useState(0);
 
   // User Profile
-  const userProfile = useMemo(() => getUserProfile(), []);
+  const [userProfile, setUserProfile] = useState(() => getUserProfile());
+
+  const handleUpdateUserProfile = (name: string, color?: string) => {
+    const updated = {
+      ...userProfile,
+      name: name.trim() || userProfile.name,
+      color: color || userProfile.color,
+    };
+    setUserProfile(updated);
+    saveUserProfile(updated);
+  };
 
   // Theme application
   useEffect(() => {
@@ -493,6 +505,7 @@ export default function App() {
 
   const handleCreateDoc = (parentId: string | null = null, datePreset?: string) => {
     const newId = `doc_${Date.now()}`;
+    const now = Date.now();
     const newDoc: DocItem = {
       id: newId,
       title: 'Dokumen Baru',
@@ -503,8 +516,28 @@ export default function App() {
       priority: 'medium',
       deadline: datePreset || undefined,
       content: '# 📄 Dokumen Baru\n\nMulai tulis ide atau rencana di sini...',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: 'Membuat dokumen baru',
+      },
+      statusHistory: [
+        {
+          id: `log_${now}_${Math.random().toString(36).substring(2, 6)}`,
+          fromStatus: 'not_started',
+          toStatus: 'not_started',
+          changedBy: {
+            userId: userProfile.userId,
+            name: userProfile.name,
+            color: userProfile.color,
+          },
+          timestamp: now,
+        },
+      ],
     };
 
     updateDocs(
@@ -541,12 +574,21 @@ export default function App() {
     if (!original) return;
 
     const dupId = `doc_${Date.now()}`;
+    const now = Date.now();
     const duplicate: DocItem = {
       ...original,
       id: dupId,
       title: `${original.title} (Salinan)`,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: 'Menduplikasi dokumen',
+      },
+      statusHistory: original.statusHistory ? [...original.statusHistory] : [],
     };
 
     updateDocs(
@@ -582,7 +624,43 @@ export default function App() {
     if (!activeDocId) return;
     const current = docs.find((d) => d.id === activeDocId);
     if (!current) return;
-    const merged = { ...current, ...updated, updatedAt: Date.now() };
+
+    const statusChanged = updated.status !== undefined && updated.status !== current.status;
+    const now = Date.now();
+
+    let newHistory = current.statusHistory ? [...current.statusHistory] : [];
+    if (statusChanged && updated.status) {
+      const changeLog: StatusChangeLog = {
+        id: `log_${now}_${Math.random().toString(36).substring(2, 6)}`,
+        fromStatus: current.status,
+        toStatus: updated.status,
+        changedBy: {
+          userId: userProfile.userId,
+          name: userProfile.name,
+          color: userProfile.color,
+        },
+        timestamp: now,
+      };
+      newHistory = [changeLog, ...newHistory].slice(0, 50);
+    }
+
+    const actionText = statusChanged
+      ? `Mengubah status jadi ${updated.status === 'completed' ? 'Selesai' : updated.status === 'in_progress' ? 'Sedang Dikerjakan' : updated.status === 'archived' ? 'Arsip' : 'Belum Mulai'}`
+      : 'Menyunting dokumen';
+
+    const merged: DocItem = {
+      ...current,
+      ...updated,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: actionText,
+      },
+      statusHistory: newHistory,
+      updatedAt: now,
+    };
 
     const isTypingContent = updated.content !== undefined;
     if (isTypingContent) {
@@ -605,7 +683,43 @@ export default function App() {
   const handleUpdateDocById = (id: string, updated: Partial<DocItem>) => {
     const current = docs.find((d) => d.id === id);
     if (!current) return;
-    const merged = { ...current, ...updated, updatedAt: Date.now() };
+
+    const statusChanged = updated.status !== undefined && updated.status !== current.status;
+    const now = Date.now();
+
+    let newHistory = current.statusHistory ? [...current.statusHistory] : [];
+    if (statusChanged && updated.status) {
+      const changeLog: StatusChangeLog = {
+        id: `log_${now}_${Math.random().toString(36).substring(2, 6)}`,
+        fromStatus: current.status,
+        toStatus: updated.status,
+        changedBy: {
+          userId: userProfile.userId,
+          name: userProfile.name,
+          color: userProfile.color,
+        },
+        timestamp: now,
+      };
+      newHistory = [changeLog, ...newHistory].slice(0, 50);
+    }
+
+    const actionText = statusChanged
+      ? `Mengubah status jadi ${updated.status === 'completed' ? 'Selesai' : updated.status === 'in_progress' ? 'Sedang Dikerjakan' : updated.status === 'archived' ? 'Arsip' : 'Belum Mulai'}`
+      : 'Memperbarui dokumen';
+
+    const merged: DocItem = {
+      ...current,
+      ...updated,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: actionText,
+      },
+      statusHistory: newHistory,
+      updatedAt: now,
+    };
 
     updateDocs(
       (prev) => prev.map((d) => (d.id === id ? merged : d)),
@@ -752,6 +866,8 @@ export default function App() {
           unreadRemindersCount={unreadRemindersCount}
           isSyncing={syncState.isSyncing}
           isOnline={syncState.isOnline}
+          userProfile={userProfile}
+          onUpdateUserProfile={handleUpdateUserProfile}
           onManualSync={handleManualSyncNow}
           onToggleMobileSidebar={() => setIsOpenMobileSidebar(!isOpenMobileSidebar)}
           onSelectDoc={handleSelectDoc}

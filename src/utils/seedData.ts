@@ -44,6 +44,22 @@ export const INITIAL_DOCS: DocItem[] = [
     updatedAt: Date.now() - 3600000 * 2,
     isFavorite: true,
     isDatabase: true,
+    lastModifiedBy: {
+      userId: 'u_randye',
+      name: 'Randye',
+      color: '#6366F1',
+      timestamp: Date.now() - 3600000 * 2,
+      action: 'Mengubah status ke Sedang Dikerjakan',
+    },
+    statusHistory: [
+      {
+        id: 'sh-1',
+        fromStatus: 'not_started',
+        toStatus: 'in_progress',
+        changedBy: { userId: 'u_randye', name: 'Randye', color: '#6366F1' },
+        timestamp: Date.now() - 3600000 * 2,
+      },
+    ],
     content: `# 🚀 Peta Jalan Pengembangan Noverse 2026
 
 Selamat datang di ruang kerja hierarkis **Noverse**. Dokumen ini merangkum strategi inti pengembangan ekosistem catatan kolaboratif offline-first dengan keamanan tinggi.
@@ -79,6 +95,22 @@ Selamat datang di ruang kerja hierarkis **Noverse**. Dokumen ini merangkum strat
     deadline: '2026-11-12',
     createdAt: Date.now() - 86400000 * 4,
     updatedAt: Date.now() - 3600000 * 4,
+    lastModifiedBy: {
+      userId: 'u_siti',
+      name: 'Siti Rahma',
+      color: '#10B981',
+      timestamp: Date.now() - 3600000 * 4,
+      action: 'Menyelesaikan dokumen arsitektur',
+    },
+    statusHistory: [
+      {
+        id: 'sh-2',
+        fromStatus: 'in_progress',
+        toStatus: 'completed',
+        changedBy: { userId: 'u_siti', name: 'Siti Rahma', color: '#10B981' },
+        timestamp: Date.now() - 3600000 * 4,
+      },
+    ],
     content: `# ⚙️ Arsitektur Modular & Offline-First
 
 Dokumen sub-halaman ini menjelaskan mekanisme penyimpanan lokal dan rekonsiliasi data.
@@ -111,6 +143,22 @@ Dokumen sub-halaman ini menjelaskan mekanisme penyimpanan lokal dan rekonsiliasi
     deadline: '2026-11-25',
     createdAt: Date.now() - 86400000 * 3,
     updatedAt: Date.now() - 3600000 * 8,
+    lastModifiedBy: {
+      userId: 'u_budi',
+      name: 'Budi Santoso',
+      color: '#F59E0B',
+      timestamp: Date.now() - 3600000 * 8,
+      action: 'Memulai audit kriptografi E2EE',
+    },
+    statusHistory: [
+      {
+        id: 'sh-3',
+        fromStatus: 'not_started',
+        toStatus: 'in_progress',
+        changedBy: { userId: 'u_budi', name: 'Budi Santoso', color: '#F59E0B' },
+        timestamp: Date.now() - 3600000 * 8,
+      },
+    ],
     content: `# 🛡️ Audit Enkripsi End-to-End (E2EE)
 
 Menjamin kerahasiaan catatan sensitif tanpa mengekspos teks biasa ke server perantara.
@@ -140,6 +188,13 @@ Menjamin kerahasiaan catatan sensitif tanpa mengekspos teks biasa ke server pera
     updatedAt: Date.now() - 3600000 * 1,
     isFavorite: true,
     isDatabase: true,
+    lastModifiedBy: {
+      userId: 'u_randye',
+      name: 'Randye',
+      color: '#6366F1',
+      timestamp: Date.now() - 3600000 * 1,
+      action: 'Memperbarui sprint mingguan',
+    },
     content: `# 📋 Sprint Mingguan & Database Pelacak Tugas
 
 Gunakan tombol tampilan di bagian atas untuk beralih antara:
@@ -166,6 +221,22 @@ Gunakan tombol tampilan di bagian atas untuk beralih antara:
     deadline: '2026-11-09',
     createdAt: Date.now() - 86400000 * 2,
     updatedAt: Date.now() - 3600000 * 5,
+    lastModifiedBy: {
+      userId: 'u_randye',
+      name: 'Randye',
+      color: '#6366F1',
+      timestamp: Date.now() - 3600000 * 5,
+      action: 'Menyelesaikan implementasi Markdown editor',
+    },
+    statusHistory: [
+      {
+        id: 'sh-4',
+        fromStatus: 'in_progress',
+        toStatus: 'completed',
+        changedBy: { userId: 'u_randye', name: 'Randye', color: '#6366F1' },
+        timestamp: Date.now() - 3600000 * 5,
+      },
+    ],
     content: `Membuat editor fleksibel bergaya Notion dengan dukungan heading (#, ##, ###), todo checklist, kutipan, tabel, dan sintaks blok kode.`,
   },
   {
@@ -179,6 +250,22 @@ Gunakan tombol tampilan di bagian atas untuk beralih antara:
     deadline: '2026-11-14',
     createdAt: Date.now() - 86400000 * 2,
     updatedAt: Date.now() - 3600000 * 3,
+    lastModifiedBy: {
+      userId: 'u_alex',
+      name: 'Alex Wijaya',
+      color: '#8B5CF6',
+      timestamp: Date.now() - 3600000 * 3,
+      action: 'Mengubah status ke Sedang Dikerjakan',
+    },
+    statusHistory: [
+      {
+        id: 'sh-5',
+        fromStatus: 'not_started',
+        toStatus: 'in_progress',
+        changedBy: { userId: 'u_alex', name: 'Alex Wijaya', color: '#8B5CF6' },
+        timestamp: Date.now() - 3600000 * 3,
+      },
+    ],
     content: `Menguji kemampuan antrean offline saat jaringan terputus dan sinkronisasi otomatis kembali saat terhubung.`,
   },
   {
@@ -192,6 +279,22 @@ Gunakan tombol tampilan di bagian atas untuk beralih antara:
     deadline: '2026-11-16',
     createdAt: Date.now() - 86400000 * 1,
     updatedAt: Date.now() - 3600000 * 1,
+    lastModifiedBy: {
+      userId: 'u_siti',
+      name: 'Siti Rahma',
+      color: '#10B981',
+      timestamp: Date.now() - 3600000 * 1,
+      action: 'Mengubah status ke Sedang Dikerjakan',
+    },
+    statusHistory: [
+      {
+        id: 'sh-6',
+        fromStatus: 'not_started',
+        toStatus: 'in_progress',
+        changedBy: { userId: 'u_siti', name: 'Siti Rahma', color: '#10B981' },
+        timestamp: Date.now() - 3600000 * 1,
+      },
+    ],
     content: `Tampilan kalender interaktif yang memetakan seluruh catatan bertenggat waktu ke dalam kisi bulanan yang jelas.`,
   },
   {
@@ -205,6 +308,13 @@ Gunakan tombol tampilan di bagian atas untuk beralih antara:
     deadline: '2026-11-22',
     createdAt: Date.now() - 86400000 * 1,
     updatedAt: Date.now() - 3600000 * 1,
+    lastModifiedBy: {
+      userId: 'u_dewi',
+      name: 'Dewi Lestari',
+      color: '#EC4899',
+      timestamp: Date.now() - 3600000 * 12,
+      action: 'Menetapkan prioritas dasbor produktivitas',
+    },
     content: `Grafik visual rasio penyelesaian tugas, total kata yang diketik, dan heatmap produktivitas 7 hari terakhir.`,
   },
   {
@@ -243,6 +353,22 @@ Kumpulan pemikiran, sintesis wawasan, dan catatan referensi jangka panjang.
     reminderTime: new Date(Date.now() + 60000 * 10).toISOString(), // reminder in 10 minutes for instant demo
     createdAt: Date.now() - 86400000 * 1,
     updatedAt: Date.now() - 1800000,
+    lastModifiedBy: {
+      userId: 'u_randye',
+      name: 'Randye',
+      color: '#6366F1',
+      timestamp: Date.now() - 1800000,
+      action: 'Mencatat hasil evaluasi sprint',
+    },
+    statusHistory: [
+      {
+        id: 'sh-7',
+        fromStatus: 'not_started',
+        toStatus: 'in_progress',
+        changedBy: { userId: 'u_randye', name: 'Randye', color: '#6366F1' },
+        timestamp: Date.now() - 1800000,
+      },
+    ],
     content: `# ☕ Rapat Sinkronisasi Mingguan Tim
 
 **Tanggal:** 11 November 2026  
@@ -270,6 +396,13 @@ Kumpulan pemikiran, sintesis wawasan, dan catatan referensi jangka panjang.
     createdAt: Date.now() - 86400000 * 2,
     updatedAt: Date.now() - 3600000 * 6,
     isEncrypted: true,
+    lastModifiedBy: {
+      userId: 'u_randye',
+      name: 'Randye',
+      color: '#6366F1',
+      timestamp: Date.now() - 3600000 * 6,
+      action: 'Mengamankan catatan dengan enkripsi',
+    },
     // Pre-encrypted with passphrase 'noverse2026'
     encryptedPayload: {
       ciphertext: '0+XbY5i9qf8ZgTq8XwN8+G7h8sVf',

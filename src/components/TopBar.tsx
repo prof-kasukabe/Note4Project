@@ -27,6 +27,8 @@ interface TopBarProps {
   unreadRemindersCount: number;
   isSyncing?: boolean;
   isOnline?: boolean;
+  userProfile?: { userId: string; name: string; color: string };
+  onUpdateUserProfile?: (name: string, color?: string) => void;
   onManualSync?: () => void;
   onToggleMobileSidebar: () => void;
   onSelectDoc: (id: string) => void;
@@ -51,6 +53,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   unreadRemindersCount,
   isSyncing = false,
   isOnline = true,
+  userProfile,
+  onUpdateUserProfile,
   onManualSync,
   onToggleMobileSidebar,
   onSelectDoc,
@@ -66,6 +70,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   const t = translations[lang];
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [editedName, setEditedName] = useState(userProfile?.name || 'Randye');
+  const [selectedColor, setSelectedColor] = useState(userProfile?.color || '#6366F1');
 
   // Compute breadcrumbs
   const breadcrumbs: DocItem[] = [];
@@ -296,6 +303,102 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
           )}
         </div>
+        {/* User Profile Pill & Collaborator Identity Switcher */}
+        {userProfile && (
+          <div className="relative">
+            <button
+              onClick={() => {
+                setEditedName(userProfile.name);
+                setSelectedColor(userProfile.color);
+                setShowProfileMenu(!showProfileMenu);
+              }}
+              title={`Profil Pengguna: ${userProfile.name}. Klik untuk ubah nama atau warna kontributor.`}
+              className="flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/60 dark:border-slate-700/60 cursor-pointer"
+            >
+              <div
+                style={{ backgroundColor: userProfile.color }}
+                className="w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0 shadow-xs ring-1 ring-white dark:ring-slate-900"
+              >
+                {userProfile.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden sm:inline max-w-[85px] truncate">
+                {userProfile.name}
+              </span>
+            </button>
+
+            {showProfileMenu && (
+              <div 
+                className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-3 z-50 text-xs text-slate-800 dark:text-slate-200"
+              >
+                <div className="font-bold text-slate-900 dark:text-white mb-1">
+                  {lang === 'id' ? 'Profil Kontributor Anda' : 'Your Contributor Profile'}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
+                  {lang === 'id' 
+                    ? 'Nama ini dicatat pada audit log saat Anda mengubah status tugas.' 
+                    : 'This name is recorded in audit logs when you update task status.'}
+                </p>
+
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                      {lang === 'id' ? 'Nama Tampilan' : 'Display Name'}
+                    </label>
+                    <input
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      placeholder="e.g. Randye (Laptop)"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      maxLength={25}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                      {lang === 'id' ? 'Warna Avatar' : 'Avatar Color'}
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EF4444'].map((col) => (
+                        <button
+                          key={col}
+                          type="button"
+                          onClick={() => setSelectedColor(col)}
+                          style={{ backgroundColor: col }}
+                          className={`w-5 h-5 rounded-full transition-transform cursor-pointer ${
+                            selectedColor === col ? 'scale-125 ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="px-2.5 py-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateUserProfile && editedName.trim()) {
+                          onUpdateUserProfile(editedName.trim(), selectedColor);
+                        }
+                        setShowProfileMenu(false);
+                      }}
+                      className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

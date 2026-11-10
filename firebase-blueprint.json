@@ -30,7 +30,9 @@
         "isDatabase": { "type": "boolean", "description": "Flag indicating root database collection" },
         "isEncrypted": { "type": "boolean", "description": "End-to-End Encryption flag" },
         "encryptedPayload": { "type": "object", "description": "AES-GCM ciphertext, iv, and salt" },
-        "content": { "type": "string", "description": "Markdown body content" }
+        "content": { "type": "string", "description": "Markdown body content" },
+        "lastModifiedBy": { "type": "object", "description": "User details who last changed the status or document" },
+        "statusHistory": { "type": "array", "description": "Audit trail log of status changes" }
       },
       "required": ["id", "title", "createdAt", "updatedAt"]
     }

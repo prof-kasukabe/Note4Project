@@ -99,11 +99,17 @@ export function getUserProfile(): { userId: string; name: string; color: string 
   const colors = ['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4'];
   const profile = {
     userId: 'u_' + Math.random().toString(36).substring(2, 8),
-    name: 'Anda (' + (navigator.language.startsWith('id') ? 'Pengguna' : 'Member') + ')',
+    name: 'Randye',
     color: colors[Math.floor(Math.random() * colors.length)],
   };
   try {
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
   } catch {}
   return profile;
+}
+
+export function saveUserProfile(profile: { userId: string; name: string; color: string }): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(profile));
+  } catch {}
 }

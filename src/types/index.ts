@@ -33,9 +33,29 @@ export interface DocItem {
     salt: string;
   };
   createdAt: number;
-  updatedAt: number;
+  updatedAt?: number;
   isFavorite?: boolean;
   isDatabase?: boolean; // whether this doc acts as a database container
+  lastModifiedBy?: {
+    userId: string;
+    name: string;
+    color: string;
+    timestamp: number;
+    action?: string;
+  };
+  statusHistory?: StatusChangeLog[];
+}
+
+export interface StatusChangeLog {
+  id: string;
+  fromStatus: DocStatus;
+  toStatus: DocStatus;
+  changedBy: {
+    userId: string;
+    name: string;
+    color: string;
+  };
+  timestamp: number;
 }
 
 export interface Collaborator {
