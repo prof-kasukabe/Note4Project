@@ -25,6 +25,13 @@ interface ClientInfo {
 
 const clients = new Map<WebSocket, ClientInfo>();
 
+function normalizeServerDoc(doc: DocItem): DocItem {
+  if (doc.id === '__workspace_evaluasi__') {
+    return { ...doc, id: 'doc-workspace-evaluasi' };
+  }
+  return doc;
+}
+
 // Load persistent database from disk or initialize with default seed
 function loadDatabaseFromDisk(): DocItem[] {
   try {
@@ -33,7 +40,7 @@ function loadDatabaseFromDisk(): DocItem[] {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         console.log(`> Loaded ${parsed.length} documents from persistent disk database`);
-        return parsed;
+        return parsed.map(normalizeServerDoc);
       }
     }
   } catch (err) {
@@ -139,14 +146,15 @@ async function startServer() {
       let hasChanged = false;
 
       if (Array.isArray(docs)) {
-        if (replaceFull || docs.length > 0) {
-          canonicalDocs = docs;
+        const sanitizedDocs = docs.map(normalizeServerDoc);
+        if (replaceFull || sanitizedDocs.length > 0) {
+          canonicalDocs = sanitizedDocs;
           hasChanged = true;
         } else {
           // Fallback map merge
           const map = new Map<string, DocItem>();
           canonicalDocs.forEach((d) => map.set(d.id, d));
-          docs.forEach((incoming: DocItem) => {
+          sanitizedDocs.forEach((incoming: DocItem) => {
             map.set(incoming.id, incoming);
           });
           canonicalDocs = Array.from(map.values());
@@ -154,11 +162,12 @@ async function startServer() {
         }
       } else if (mutation) {
         if (mutation.type === 'upsert' && mutation.doc) {
-          const idx = canonicalDocs.findIndex((d) => d.id === mutation.doc.id);
+          const safeMutationDoc = normalizeServerDoc(mutation.doc);
+          const idx = canonicalDocs.findIndex((d) => d.id === safeMutationDoc.id);
           if (idx >= 0) {
-            canonicalDocs[idx] = { ...canonicalDocs[idx], ...mutation.doc, updatedAt: mutation.doc.updatedAt || Date.now() };
+            canonicalDocs[idx] = { ...canonicalDocs[idx], ...safeMutationDoc, updatedAt: safeMutationDoc.updatedAt || Date.now() };
           } else {
-            canonicalDocs.unshift({ ...mutation.doc, updatedAt: mutation.doc.updatedAt || Date.now() });
+            canonicalDocs.unshift({ ...safeMutationDoc, updatedAt: safeMutationDoc.updatedAt || Date.now() });
           }
           hasChanged = true;
           broadcastAll({
@@ -291,11 +300,12 @@ async function startServer() {
 
           case 'doc_upsert': {
             if (message.doc && message.doc.id) {
-              const idx = canonicalDocs.findIndex((d) => d.id === message.doc.id);
+              const normalizedDoc = normalizeServerDoc(message.doc);
+              const idx = canonicalDocs.findIndex((d) => d.id === normalizedDoc.id);
               if (idx >= 0) {
-                canonicalDocs[idx] = { ...canonicalDocs[idx], ...message.doc, updatedAt: Date.now() };
+                canonicalDocs[idx] = { ...canonicalDocs[idx], ...normalizedDoc, updatedAt: Date.now() };
               } else {
-                canonicalDocs.unshift({ ...message.doc, updatedAt: Date.now() });
+                canonicalDocs.unshift({ ...normalizedDoc, updatedAt: Date.now() });
               }
 
               databaseRevision++;

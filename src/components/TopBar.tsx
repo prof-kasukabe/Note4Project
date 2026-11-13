@@ -116,7 +116,13 @@ export const TopBar: React.FC<TopBarProps> = ({
       case 'analytics':
         return 'Analisis Produktivitas';
       case 'project_web':
-        return 'Website portofolio';
+        return 'Website project';
+      case 'project_mobile':
+        return 'Aplikasi habit tracker';
+      case 'project_design':
+        return 'Identitas Kopi Sore';
+      case 'evaluasi':
+        return 'Evaluasi';
       case 'editor':
         return activeDoc?.title || 'Dokumen';
       default:

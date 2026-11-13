@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Image as ImageIcon, 
   Trash2, 
@@ -8,6 +8,7 @@ import {
   Lock, 
   Unlock, 
   Eye, 
+  EyeOff,
   Edit3, 
   Columns, 
   Plus, 
@@ -24,7 +25,8 @@ import {
   SplitSquareVertical, 
   X,
   AlertCircle,
-  History
+  History,
+  KeyRound
 } from 'lucide-react';
 import { DocItem, DocStatus, DocPriority, Language, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
@@ -38,11 +40,16 @@ interface DocumentEditorProps {
   lang: Language;
   collaborators: Collaborator[];
   isVaultUnlocked: boolean;
+  isDocUnlocked?: boolean;
+  unlockedContent?: string;
   onUpdateDoc: (updated: Partial<DocItem>) => void;
   onSelectDoc: (id: string) => void;
   onCreateSubPage: (parentId: string) => void;
   onSendCursor: (cursor: { blockIndex?: number; text?: string }) => void;
   onUnlockVault: (passphrase: string) => Promise<boolean>;
+  onLockWithPassword: (passphrase: string) => Promise<boolean>;
+  onUnlockWithPassword: (passphrase: string, permanent?: boolean) => Promise<boolean>;
+  onRelockDoc: () => Promise<void>;
 }
 
 const EMOJI_PRESETS = ['📄', '🚀', '📋', '💡', '⚙️', '📝', '🎯', '🌿', '☕', '🔒', '📚', '⚡', '💻', '🎨', '🔥', '✨'];
@@ -53,11 +60,16 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   lang,
   collaborators,
   isVaultUnlocked,
+  isDocUnlocked,
+  unlockedContent,
   onUpdateDoc,
   onSelectDoc,
   onCreateSubPage,
   onSendCursor,
   onUnlockVault,
+  onLockWithPassword,
+  onUnlockWithPassword,
+  onRelockDoc,
 }) => {
   const t = translations[lang];
   const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('edit');
@@ -66,9 +78,27 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTagText, setNewTagText] = useState('');
   const [passphraseInput, setPassphraseInput] = useState('');
+  const [showInlinePassword, setShowInlinePassword] = useState(false);
   const [decryptError, setDecryptError] = useState('');
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  // Per-document lock/unlock modal state (triggered by the lock button)
+  const [showLockModal, setShowLockModal] = useState(false);
+  const [lockPasswordInput, setLockPasswordInput] = useState('');
+  const [showModalPassword, setShowModalPassword] = useState(false);
+  const [lockModalError, setLockModalError] = useState('');
+  const [isLockProcessing, setIsLockProcessing] = useState(false);
+  const [removeLockOnUnlock, setRemoveLockOnUnlock] = useState(false);
+
+  useEffect(() => {
+    setPassphraseInput('');
+    setDecryptError('');
+    setShowLockModal(false);
+    setLockPasswordInput('');
+    setLockModalError('');
+    setRemoveLockOnUnlock(false);
+  }, [doc.id]);
 
   // Slash command menu state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -146,9 +176,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     { label: t.blockDivider, prefix: '\n---\n', icon: <SplitSquareVertical size={14} />, desc: 'Garis pemisah visual' },
   ].filter((opt) => opt.label.toLowerCase().includes(slashQuery) || opt.desc.toLowerCase().includes(slashQuery));
 
+  const isDocumentLocked = Boolean(
+    doc.isEncrypted && !(isDocUnlocked ?? isVaultUnlocked)
+  );
+  const effectiveContent =
+    doc.isEncrypted && !isDocumentLocked && unlockedContent !== undefined
+      ? unlockedContent
+      : doc.content || '';
+
   // Toggle todo item in markdown preview
-  const handleToggleTodo = (blockIndex: number, currentText: string, currentChecked: boolean) => {
-    const lines = doc.content.split('\n');
+  const handleToggleTodo = (blockIndex: number, _currentText: string, currentChecked: boolean) => {
+    const lines = effectiveContent.split('\n');
     let todoCount = 0;
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].match(/^-\s*\[([ xX])\]/)) {
@@ -183,13 +221,26 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passphraseInput) return;
+    if (!passphraseInput) {
+      setDecryptError(
+        lang === 'id' ? 'Masukkan password terlebih dahulu.' : 'Please enter the password first.'
+      );
+      return;
+    }
     setIsDecrypting(true);
     setDecryptError('');
     try {
-      const ok = await onUnlockVault(passphraseInput);
+      const ok = onUnlockWithPassword
+        ? await onUnlockWithPassword(passphraseInput, false)
+        : await onUnlockVault(passphraseInput);
       if (!ok) {
-        setDecryptError(t.wrongPassphrase);
+        setDecryptError(
+          lang === 'id'
+            ? 'Password salah! Gunakan password yang sama dengan saat mengunci dokumen.'
+            : 'Incorrect password! Enter the same password used when locking.'
+        );
+      } else {
+        setPassphraseInput('');
       }
     } catch {
       setDecryptError(t.wrongPassphrase);
@@ -198,13 +249,86 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   };
 
+  const handleOpenLockModal = () => {
+    setLockPasswordInput('');
+    setLockModalError('');
+    setShowModalPassword(false);
+    setRemoveLockOnUnlock(false);
+    setShowLockModal(true);
+  };
+
+  const handleSubmitLockModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lockPasswordInput) {
+      setLockModalError(
+        lang === 'id' ? 'Masukkan password terlebih dahulu.' : 'Please enter a password first.'
+      );
+      return;
+    }
+    setIsLockProcessing(true);
+    setLockModalError('');
+    try {
+      if (!doc.isEncrypted) {
+        const ok = await onLockWithPassword(lockPasswordInput);
+        if (ok) {
+          setLockPasswordInput('');
+          setShowLockModal(false);
+        } else {
+          setLockModalError(
+            lang === 'id' ? 'Gagal mengunci dokumen.' : 'Failed to lock document.'
+          );
+        }
+      } else if (isDocumentLocked) {
+        const ok = await onUnlockWithPassword(lockPasswordInput, removeLockOnUnlock);
+        if (ok) {
+          setLockPasswordInput('');
+          setShowLockModal(false);
+        } else {
+          setLockModalError(
+            lang === 'id'
+              ? 'Password salah! Masukkan password yang sama saat mengunci.'
+              : 'Wrong password! Enter the same password used to lock.'
+          );
+        }
+      } else {
+        // Already unlocked in session -> permanently disable lock after verifying password
+        const ok = await onUnlockWithPassword(lockPasswordInput, true);
+        if (ok) {
+          setLockPasswordInput('');
+          setShowLockModal(false);
+        } else {
+          setLockModalError(
+            lang === 'id'
+              ? 'Password salah! Masukkan password yang sama untuk menonaktifkan kunci.'
+              : 'Wrong password! Enter the matching password to disable lock.'
+          );
+        }
+      }
+    } catch {
+      setLockModalError(t.wrongPassphrase);
+    } finally {
+      setIsLockProcessing(false);
+    }
+  };
+
+  const handleQuickRelock = async () => {
+    setIsLockProcessing(true);
+    setLockModalError('');
+    try {
+      await onRelockDoc();
+      setLockPasswordInput('');
+      setShowLockModal(false);
+    } finally {
+      setIsLockProcessing(false);
+    }
+  };
+
   // Word and character stats
-  const wordCount = (doc.content || '').trim().split(/\s+/).filter(Boolean).length;
-  const charCount = (doc.content || '').length;
+  const wordCount = isDocumentLocked ? 0 : effectiveContent.trim().split(/\s+/).filter(Boolean).length;
+  const charCount = isDocumentLocked ? 0 : effectiveContent.length;
   const readTimeMin = Math.max(1, Math.ceil(wordCount / 200));
 
-  const isDocumentLocked = doc.isEncrypted && !isVaultUnlocked;
-  const parsedBlocks = parseMarkdownToBlocks(doc.content || '');
+  const parsedBlocks = parseMarkdownToBlocks(effectiveContent);
 
   const getStatusBadgeStyle = (status: DocStatus) => {
     switch (status) {
@@ -438,17 +562,25 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             )}
           </div>
 
-          {/* E2EE indicator button */}
+          {/* E2EE Lock / Unlock Password Button */}
           <button
-            onClick={() => onUpdateDoc({ isEncrypted: !doc.isEncrypted, updatedAt: Date.now() })}
+            onClick={handleOpenLockModal}
             className={`flex items-center gap-1 px-2.5 py-1 rounded-[4px] text-[11px] font-medium border border-[#EAEAE5] dark:border-[#2B2B28] transition-colors cursor-pointer ${
               doc.isEncrypted
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                ? isDocumentLocked
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                  : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                 : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:text-[#282925]'
             }`}
           >
-            {doc.isEncrypted ? <Lock size={12} /> : <Unlock size={12} />}
-            <span>{doc.isEncrypted ? t.e2eeActive : t.lockDocument}</span>
+            {doc.isEncrypted && isDocumentLocked ? <Lock size={12} /> : doc.isEncrypted ? <Unlock size={12} /> : <Lock size={12} />}
+            <span>
+              {doc.isEncrypted
+                ? isDocumentLocked
+                  ? (lang === 'id' ? 'Terkunci · Buka' : 'Locked · Unlock')
+                  : (lang === 'id' ? 'Terbuka · Kunci' : 'Unlocked · Lock')
+                : t.lockDocument}
+            </span>
           </button>
 
           {/* Last Modified By (Status & Progress Audit Pill) */}
@@ -589,6 +721,151 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
         )}
 
+        {/* Password Lock / Unlock Modal */}
+        {showLockModal && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+            <div className="bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] shadow-2xl max-w-md w-full p-5 relative">
+              <button
+                type="button"
+                onClick={() => setShowLockModal(false)}
+                className="p-1 rounded text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8] absolute top-4 right-4 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] text-amber-600 flex items-center justify-center shrink-0">
+                  {doc.isEncrypted && !isDocumentLocked ? <Unlock size={18} /> : <Lock size={18} />}
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#282925] dark:text-[#EDEDE8]">
+                    {!doc.isEncrypted
+                      ? (lang === 'id' ? 'Kunci Dokumen dengan Password' : 'Lock Document with Password')
+                      : isDocumentLocked
+                        ? (lang === 'id' ? 'Buka Dokumen Terkunci' : 'Unlock Document')
+                        : (lang === 'id' ? 'Kelola Kunci Dokumen' : 'Manage Document Lock')}
+                  </h3>
+                  <p className="text-[11px] text-[#777973]">
+                    {doc.title || 'Dokumen'}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-[#777973] mb-4 leading-relaxed">
+                {!doc.isEncrypted
+                  ? (lang === 'id'
+                      ? 'Masukkan password terlebih dahulu sebelum mengunci. Saat ingin membuka dokumen ini kembali, Anda harus memasukkan password yang sama.'
+                      : 'Enter a password before locking. You will need the same password to open this document again.')
+                  : isDocumentLocked
+                    ? (lang === 'id'
+                        ? 'Masukkan password yang sama seperti saat Anda mengunci dokumen ini.'
+                        : 'Enter the exact same password used when locking this document.')
+                    : (lang === 'id'
+                        ? 'Dokumen sedang terbuka di sesi Anda. Anda bisa menguncinya kembali sekarang atau memasukkan password yang sama untuk menonaktifkan kunci secara permanen.'
+                        : 'This document is currently unlocked in your session. Re-lock it now or enter the matching password to permanently remove the lock.')}
+              </p>
+
+              {doc.isEncrypted && !isDocumentLocked && (
+                <button
+                  type="button"
+                  onClick={handleQuickRelock}
+                  disabled={isLockProcessing}
+                  className="w-full mb-4 py-2 px-4 rounded-[6px] bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <Lock size={13} />
+                  <span>{lang === 'id' ? 'Kunci Kembali Sekarang' : 'Lock Document Again Now'}</span>
+                </button>
+              )}
+
+              <form onSubmit={handleSubmitLockModal} className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-[#282925] dark:text-[#EDEDE8] mb-1">
+                    {!doc.isEncrypted
+                      ? (lang === 'id' ? 'Buat Password Kunci' : 'Create Lock Password')
+                      : isDocumentLocked
+                        ? (lang === 'id' ? 'Password Dokumen' : 'Document Password')
+                        : (lang === 'id' ? 'Masukkan Password untuk Hapus Kunci Permanen' : 'Enter Password to Permanently Remove Lock')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showModalPassword ? 'text' : 'password'}
+                      placeholder={
+                        !doc.isEncrypted
+                          ? (lang === 'id' ? 'Masukkan password untuk mengunci...' : 'Enter password to lock...')
+                          : (lang === 'id' ? 'Masukkan password yang sama...' : 'Enter the same password...')
+                      }
+                      value={lockPasswordInput}
+                      onChange={(e) => {
+                        setLockPasswordInput(e.target.value);
+                        if (lockModalError) setLockModalError('');
+                      }}
+                      autoFocus
+                      className="w-full pl-3 pr-9 py-2 text-xs rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] text-[#282925] dark:text-[#EDEDE8] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowModalPassword(!showModalPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#777973] hover:text-[#282925] cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      {showModalPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                {doc.isEncrypted && isDocumentLocked && (
+                  <label className="flex items-center gap-2 text-[11px] text-[#777973] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={removeLockOnUnlock}
+                      onChange={(e) => setRemoveLockOnUnlock(e.target.checked)}
+                      className="rounded border-[#EAEAE5] accent-[#282925]"
+                    />
+                    <span>
+                      {lang === 'id'
+                        ? 'Nonaktifkan kunci secara permanen setelah terbuka'
+                        : 'Permanently remove lock after unlocking'}
+                    </span>
+                  </label>
+                )}
+
+                {lockModalError && (
+                  <div className="text-xs text-rose-500 flex items-center gap-1.5">
+                    <AlertCircle size={13} className="shrink-0" />
+                    <span>{lockModalError}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowLockModal(false)}
+                    className="px-3 py-1.5 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] text-xs font-medium text-[#777973] hover:text-[#282925] cursor-pointer"
+                  >
+                    {lang === 'id' ? 'Batal' : 'Cancel'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLockProcessing}
+                    className="px-4 py-1.5 rounded-[6px] bg-[#282925] hover:bg-[#3E3F3B] text-white text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <KeyRound size={13} />
+                    <span>
+                      {isLockProcessing
+                        ? t.syncing
+                        : !doc.isEncrypted
+                          ? (lang === 'id' ? 'Kunci Dokumen' : 'Lock Document')
+                          : isDocumentLocked
+                            ? (lang === 'id' ? 'Buka Kunci' : 'Unlock')
+                            : (lang === 'id' ? 'Hapus Kunci Permanen' : 'Remove Lock Permanently')}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Locked Document Vault Guard */}
         {isDocumentLocked ? (
           <div className="my-12 p-8 rounded-[8px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] text-center max-w-md mx-auto">
@@ -599,17 +876,32 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               {t.unlockDocument}
             </h4>
             <p className="text-xs text-[#777973] mb-4">
-              {t.passphraseDesc}
+              {lang === 'id'
+                ? 'Dokumen ini terkunci. Masukkan password yang sama seperti saat Anda menguncinya.'
+                : t.passphraseDesc}
             </p>
 
             <form onSubmit={handleUnlock} className="space-y-3">
-              <input
-                type="password"
-                placeholder={t.enterPassphrase}
-                value={passphraseInput}
-                onChange={(e) => setPassphraseInput(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-white dark:bg-[#1E1E1C] text-[#282925] dark:text-[#EDEDE8] focus:outline-none"
-              />
+              <div className="relative">
+                <input
+                  type={showInlinePassword ? 'text' : 'password'}
+                  placeholder={lang === 'id' ? 'Masukkan password dokumen...' : t.enterPassphrase}
+                  value={passphraseInput}
+                  onChange={(e) => {
+                    setPassphraseInput(e.target.value);
+                    if (decryptError) setDecryptError('');
+                  }}
+                  className="w-full pl-3 pr-9 py-2 text-xs rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-white dark:bg-[#1E1E1C] text-[#282925] dark:text-[#EDEDE8] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowInlinePassword(!showInlinePassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#777973] hover:text-[#282925] cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showInlinePassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
 
               {decryptError && (
                 <div className="text-xs text-rose-500 flex items-center justify-center gap-1">
@@ -621,7 +913,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <button
                 type="submit"
                 disabled={isDecrypting}
-                className="w-full py-2 px-4 rounded-[6px] bg-[#282925] text-white font-medium text-xs hover:bg-[#3E3F3B] transition-colors disabled:opacity-50"
+                className="w-full py-2 px-4 rounded-[6px] bg-[#282925] text-white font-medium text-xs hover:bg-[#3E3F3B] transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {isDecrypting ? t.syncing : t.unlockDocument}
               </button>
@@ -799,7 +1091,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                   <div className="flex flex-col flex-1">
                     <textarea
                       ref={textareaRef}
-                      value={doc.content}
+                      value={effectiveContent}
                       onChange={handleContentChange}
                       placeholder={t.writePlaceholder}
                       className="w-full flex-1 min-h-[380px] p-4 text-sm font-mono leading-relaxed bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none resize-none"

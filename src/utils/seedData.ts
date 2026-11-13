@@ -1,4 +1,4 @@
-import type { DocItem } from '../types/index.ts';
+import type { DocItem, EvaluationData, ProjectDetailData } from '../types/index.ts';
 
 export const COVER_PRESETS = [
   {
@@ -27,6 +27,278 @@ export const COVER_PRESETS = [
     url: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
   },
 ];
+
+export const MOBILE_PROJECT_DOC_ID = 'doc-habit-tracker';
+
+export const DEFAULT_MOBILE_PROJECT_DATA: ProjectDetailData = {
+  statusLabel: 'Dikerjakan',
+  teamNote: 'Pengingat harus bisa diatur per kebiasaan. Gunakan pola navigasi yang konsisten di Android dan iOS.',
+  baseCompletedTasks: 7,
+  baseTotalTasks: 7,
+  tasks: [
+    {
+      id: 'task-hm-1',
+      title: 'Susun alur onboarding pengguna',
+      assignee: 'Andi',
+      priority: 'Sedang',
+      dueDate: '11 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-hm-2',
+      title: 'Bangun pengingat kebiasaan',
+      assignee: 'Rafi',
+      priority: 'Tinggi',
+      dueDate: '13 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-hm-3',
+      title: 'Tampilkan statistik mingguan',
+      assignee: 'Rafi',
+      priority: 'Sedang',
+      dueDate: '14 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-hm-4',
+      title: 'Uji coba di Android & iOS',
+      assignee: 'Andi',
+      priority: 'Tinggi',
+      dueDate: '16 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-hm-5',
+      title: 'Rancang layar catatan harian',
+      assignee: 'Andi',
+      priority: 'Sedang',
+      dueDate: 'Selesai',
+      completed: true,
+    },
+  ],
+  discussions: [
+    {
+      id: 'disc-hm-1',
+      userName: 'Andi Darma',
+      userColor: '#6366F1',
+      text: 'Wireframe alur onboarding dan layar catatan harian sudah masuk Figma. Tinggal sinkron jadwal pengingat.',
+      timestamp: Date.now() - 3600000 * 4,
+    },
+    {
+      id: 'disc-hm-2',
+      userName: 'Rafi',
+      userColor: '#10B981',
+      text: 'Push notification Android sudah berjalan normal, sedang menyamakan perilaku izin notifikasi di iOS.',
+      timestamp: Date.now() - 3600000 * 1.5,
+    },
+  ],
+  toolLinks: [
+    {
+      id: 'tool-figma',
+      name: 'Figma',
+      description: 'Alur layar & prototipe',
+      url: 'https://figma.com/@habit-tracker-mobile',
+    },
+    {
+      id: 'tool-ide',
+      name: 'Android Studio / Xcode',
+      description: 'Build & uji Android / iOS',
+      url: 'https://developer.android.com/studio',
+    },
+    {
+      id: 'tool-firebase',
+      name: 'Firebase',
+      description: 'Autentikasi & sinkronisasi data',
+      url: 'https://console.firebase.google.com',
+    },
+  ],
+};
+
+export const createDefaultMobileProjectDoc = (): DocItem => ({
+  id: MOBILE_PROJECT_DOC_ID,
+  title: 'Aplikasi habit tracker',
+  icon: '📱',
+  parentId: null,
+  tags: ['Aplikasi mobile', 'Produk digital'],
+  status: 'in_progress',
+  priority: 'medium',
+  deadline: '2026-11-16',
+  createdAt: Date.now() - 86400000 * 6,
+  updatedAt: Date.now() - 1200000,
+  isFavorite: true,
+  projectData: DEFAULT_MOBILE_PROJECT_DATA,
+  lastModifiedBy: {
+    userId: 'u_andi',
+    name: 'Andi Darma',
+    color: '#6366F1',
+    timestamp: Date.now() - 1200000,
+    action: 'Memperbarui progres Aplikasi habit tracker',
+  },
+  statusHistory: [
+    {
+      id: 'sh-hm-1',
+      fromStatus: 'not_started',
+      toStatus: 'in_progress',
+      changedBy: { userId: 'u_andi', name: 'Andi Darma', color: '#6366F1' },
+      timestamp: Date.now() - 86400000 * 2,
+    },
+  ],
+  content: `# 📱 Aplikasi habit tracker
+
+**Kategori:** Aplikasi mobile · Produk digital  
+**Penanggung Jawab:** Andi Darma  
+**Tenggat:** 16 November 2026  
+
+Aplikasi mobile untuk mencatat kebiasaan harian, menjaga konsistensi, dan melihat progres. Fokus pada alur sederhana dan pengingat yang membantu.
+
+---
+
+### 🎯 Hasil yang Dituju
+- [ ] Onboarding & daftar kebiasaan
+- [ ] Pengingat harian
+- [x] Statistik progres mingguan
+
+### 📝 Catatan untuk Tim
+Pengingat harus bisa diatur per kebiasaan. Gunakan pola navigasi yang konsisten di Android dan iOS.
+`,
+});
+
+export const DESIGN_PROJECT_DOC_ID = 'doc-kopi-sore';
+
+export const DEFAULT_DESIGN_PROJECT_DATA: ProjectDetailData = {
+  statusLabel: 'Dikerjakan',
+  teamNote: 'Pertahankan nuansa hangat dan natural. Pastikan logo tetap terbaca pada ukuran kecil serta versi satu warna.',
+  baseCompletedTasks: 5,
+  baseTotalTasks: 5,
+  tasks: [
+    {
+      id: 'task-ks-1',
+      title: 'Finalisasi alternatif logo utama',
+      assignee: 'Nadia',
+      priority: 'Tinggi',
+      dueDate: '12 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-ks-2',
+      title: 'Susun panduan tipografi merek',
+      assignee: 'Nadia',
+      priority: 'Sedang',
+      dueDate: '14 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-ks-3',
+      title: 'Terapkan identitas pada kemasan',
+      assignee: 'Salsa',
+      priority: 'Sedang',
+      dueDate: '17 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-ks-4',
+      title: 'Review panduan merek bersama',
+      assignee: 'Salsa',
+      priority: 'Tinggi',
+      dueDate: '20 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-ks-5',
+      title: 'Eksplorasi palet warna merek',
+      assignee: 'Salsa',
+      priority: 'Sedang',
+      dueDate: 'Selesai',
+      completed: true,
+    },
+  ],
+  discussions: [
+    {
+      id: 'disc-ks-1',
+      userName: 'Nadia Putri',
+      userColor: '#EC4899',
+      text: 'Tiga opsi logomark untuk Kopi Sore sudah masuk papan Figma. Versi monokrom paling aman di ukuran stempel cup 18mm.',
+      timestamp: Date.now() - 3600000 * 5,
+    },
+    {
+      id: 'disc-ks-2',
+      userName: 'Salsa',
+      userColor: '#F59E0B',
+      text: 'Palet warna cokelat panggang dan krem gading sudah dipadukan dengan mockup kemasan sleeve & pouch 250g.',
+      timestamp: Date.now() - 3600000 * 2,
+    },
+  ],
+  toolLinks: [
+    {
+      id: 'tool-ks-figma',
+      name: 'Figma',
+      description: 'Moodboard & panduan merek',
+      url: 'https://figma.com/@kopi-sore-brand',
+    },
+    {
+      id: 'tool-ks-ai',
+      name: 'Adobe Illustrator',
+      description: 'Logo vektor & aset cetak',
+      url: 'https://www.adobe.com/products/illustrator.html',
+    },
+    {
+      id: 'tool-ks-drive',
+      name: 'Google Drive',
+      description: 'Arsip & berbagi aset final',
+      url: 'https://drive.google.com',
+    },
+  ],
+};
+
+export const createDefaultDesignProjectDoc = (): DocItem => ({
+  id: DESIGN_PROJECT_DOC_ID,
+  title: 'Identitas Kopi Sore',
+  icon: '🎨',
+  parentId: null,
+  tags: ['Desain', 'Identitas merek'],
+  status: 'in_progress',
+  priority: 'medium',
+  deadline: '2026-11-20',
+  createdAt: Date.now() - 86400000 * 5,
+  updatedAt: Date.now() - 900000,
+  isFavorite: true,
+  projectData: DEFAULT_DESIGN_PROJECT_DATA,
+  lastModifiedBy: {
+    userId: 'u_nadia',
+    name: 'Nadia Putri',
+    color: '#EC4899',
+    timestamp: Date.now() - 900000,
+    action: 'Memperbarui progres Identitas Kopi Sore',
+  },
+  statusHistory: [
+    {
+      id: 'sh-ks-1',
+      fromStatus: 'not_started',
+      toStatus: 'in_progress',
+      changedBy: { userId: 'u_nadia', name: 'Nadia Putri', color: '#EC4899' },
+      timestamp: Date.now() - 86400000 * 2,
+    },
+  ],
+  content: `# 🎨 Identitas Kopi Sore
+
+**Kategori:** Desain · Identitas merek  
+**Penanggung Jawab:** Nadia Putri  
+**Tenggat:** 20 November 2026  
+
+Merancang identitas visual Kopi Sore yang hangat, bersahaja, dan dekat. Mencakup logo, warna, tipografi, kemasan, serta panduan penggunaan merek.
+
+---
+
+### 🎯 Hasil yang Dituju
+- [ ] Logo utama & variasi
+- [x] Palet warna & tipografi
+- [ ] Panduan merek & kemasan
+
+### 📝 Catatan untuk Tim
+Pertahankan nuansa hangat dan natural. Pastikan logo tetap terbaca pada ukuran kecil serta versi satu warna.
+`,
+});
 
 export const INITIAL_DOCS: DocItem[] = [
   {
@@ -78,6 +350,8 @@ Ruang untuk menampilkan karya, cerita, dan hal yang kamu kerjakan. Fokus pada pe
 - **Vercel**: Preview & publikasi website
 `,
   },
+  createDefaultMobileProjectDoc(),
+  createDefaultDesignProjectDoc(),
   {
     id: 'doc-roadmap',
     title: 'Peta Jalan Produk 2026 (Product Roadmap)',
@@ -467,3 +741,134 @@ Kunci sandi contoh untuk membuka demo ini: \`noverse2026\`
 `,
   },
 ];
+
+export const EVALUATION_DOC_ID = 'doc-workspace-evaluasi';
+
+export const DEFAULT_EVALUATION_DATA: EvaluationData = {
+  period: 'November 2026',
+  updatedLabel: 'Diperbarui 13 November 2026',
+  attentionHighlight: 'Progres dan belanja relatif sejalan.',
+  attentionSummary: '69% tugas selesai dengan 70,8% anggaran terpakai. Tinjau kebutuhan biaya untuk pekerjaan yang tersisa.',
+  weeklyFocus: 'Tuntaskan uji mobile website dan validasi pengingat habit tracker sebelum rilis.',
+  projects: [
+    {
+      id: 'eval-p-1',
+      name: 'Website portofolio',
+      status: 'in_progress',
+      completedTasks: 18,
+      totalTasks: 24,
+      budget: 5000000,
+      realization: 3600000,
+      evaluationNote: 'Uji navigasi mobile',
+      linkedDocId: 'doc-portfolio-web',
+    },
+    {
+      id: 'eval-p-2',
+      name: 'Aplikasi habit tracker',
+      status: 'in_progress',
+      completedTasks: 8,
+      totalTasks: 12,
+      budget: 8000000,
+      realization: 5600000,
+      evaluationNote: 'Validasi pengingat harian',
+      linkedDocId: 'doc-habit-tracker',
+    },
+    {
+      id: 'eval-p-3',
+      name: 'Identitas Kopi Sore',
+      status: 'in_progress',
+      completedTasks: 6,
+      totalTasks: 10,
+      budget: 4000000,
+      realization: 2800000,
+      evaluationNote: 'Finalisasi logo & kemasan',
+      linkedDocId: 'doc-kopi-sore',
+    },
+    {
+      id: 'eval-p-4',
+      name: 'Newsletter Minggu Pagi',
+      status: 'not_started',
+      completedTasks: 0,
+      totalTasks: 8,
+      budget: 1500000,
+      realization: 0,
+      evaluationNote: 'Tetapkan ruang lingkup',
+    },
+    {
+      id: 'eval-p-5',
+      name: 'Sistem desain mini',
+      status: 'completed',
+      completedTasks: 10,
+      totalTasks: 10,
+      budget: 2500000,
+      realization: 2300000,
+      evaluationNote: 'Pustaka komponen selesai',
+    },
+    {
+      id: 'eval-p-6',
+      name: 'Riset pengguna',
+      status: 'completed',
+      completedTasks: 6,
+      totalTasks: 6,
+      budget: 3000000,
+      realization: 2700000,
+      evaluationNote: 'Riset & strategi selesai',
+    },
+  ],
+  issues: [
+    {
+      id: 'issue-1',
+      code: '01',
+      title: 'Navigasi mobile perlu diperbaiki',
+      projectName: 'Website portofolio',
+      priority: 'Tinggi',
+      actionPlan: 'Perbaiki menu, lalu uji pada layar kecil.',
+      owner: 'Rafi',
+      targetDate: 'Target 13 Nov 2026',
+      status: 'Terbuka',
+    },
+    {
+      id: 'issue-2',
+      code: '02',
+      title: 'Pengingat belum konsisten',
+      projectName: 'Aplikasi habit tracker',
+      priority: 'Sedang',
+      actionPlan: 'Validasi izin notifikasi dan jadwal pengingat.',
+      owner: 'Rafi',
+      targetDate: 'Target 14 Nov 2026',
+      status: 'Terbuka',
+    },
+    {
+      id: 'issue-3',
+      code: '03',
+      title: 'Pilihan logo belum disepakati',
+      projectName: 'Identitas Kopi Sore',
+      priority: 'Sedang',
+      actionPlan: 'Review dua alternatif dan tetapkan logo utama.',
+      owner: 'Nadia',
+      targetDate: 'Target 16 Nov 2026',
+      status: 'Terbuka',
+    },
+  ],
+  learnings: [
+    {
+      id: 'learn-1',
+      tag: '01 / PERTAHANKAN',
+      title: 'Dokumentasi yang rapi',
+      description: 'Gunakan hasil riset dan pustaka komponen sebagai acuan proyek berikutnya.',
+    },
+    {
+      id: 'learn-2',
+      tag: '02 / PERBAIKI',
+      title: 'Review lebih awal',
+      description: 'Jadwalkan review di tengah pengerjaan agar revisi tidak menumpuk menjelang tenggat.',
+    },
+    {
+      id: 'learn-3',
+      tag: '03 / LANGKAH BERIKUTNYA',
+      title: 'Sepakati prioritas bersama',
+      description: 'Tinjau tiga masalah terbuka pada 16 November, lalu perbarui progres dan kebutuhan biaya.',
+    },
+  ],
+};
+

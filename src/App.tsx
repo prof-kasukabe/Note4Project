@@ -6,10 +6,11 @@ import {
   Language, 
   SyncState, 
   Collaborator,
-  StatusChangeLog
+  StatusChangeLog,
+  EvaluationData
 } from './types';
 import { translations } from './utils/i18n';
-import { INITIAL_DOCS } from './utils/seedData';
+import { INITIAL_DOCS, EVALUATION_DOC_ID, DEFAULT_EVALUATION_DATA } from './utils/seedData';
 import { 
   loadStoredDocs, 
   saveStoredDocs, 
@@ -43,12 +44,15 @@ import { EncryptionModal } from './components/EncryptionModal';
 import { NotificationModal } from './components/NotificationModal';
 import { WorkspaceOverview } from './components/WorkspaceOverview';
 import { ProjectWebDetail } from './components/ProjectWebDetail';
+import { ProjectMobileDetail } from './components/ProjectMobileDetail';
+import { ProjectDesignDetail } from './components/ProjectDesignDetail';
+import { EvaluasiPage } from './components/EvaluasiPage';
 import { 
   FileText, 
   Table, 
   Kanban, 
   Calendar as CalendarIcon, 
-  BarChart3,
+  ChartNoAxesCombined,
   Home
 } from 'lucide-react';
 
@@ -65,10 +69,23 @@ export default function App() {
     return navigator.language.startsWith('id') ? 'id' : 'en';
   });
 
+  const migrateDocs = (list: DocItem[]): DocItem[] => {
+    const seen = new Set<string>();
+    const normalized: DocItem[] = [];
+    for (const item of list) {
+      const id = item.id === '__workspace_evaluasi__' ? EVALUATION_DOC_ID : item.id;
+      if (!seen.has(id)) {
+        seen.add(id);
+        normalized.push(id === item.id ? item : { ...item, id });
+      }
+    }
+    return normalized;
+  };
+
   // Documents state
   const [docs, setDocs] = useState<DocItem[]>(() => {
     const loaded = loadStoredDocs();
-    return loaded && loaded.length > 0 ? loaded : INITIAL_DOCS;
+    return loaded && loaded.length > 0 ? migrateDocs(loaded) : INITIAL_DOCS;
   });
 
   // Active doc state
@@ -96,10 +113,14 @@ export default function App() {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const collabManagerRef = useRef<CollabManager | null>(null);
 
-  // E2EE Vault state
+  // E2EE Vault & Per-Document Lock state
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [vaultPassphrase, setVaultPassphrase] = useState<string | null>(null);
   const [showEncryptionModal, setShowEncryptionModal] = useState(false);
+  const [unlockedDocs, setUnlockedDocs] = useState<Record<string, { content: string; passphrase: string }>>({});
+  const unlockedDocsRef = useRef<Record<string, { content: string; passphrase: string }>>({});
+  unlockedDocsRef.current = unlockedDocs;
+  const encryptEditTimersRef = useRef<Record<string, number>>({});
 
   // Reminders modal state
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -218,8 +239,9 @@ export default function App() {
 
     // 2. Subscribe to real-time Cloud Firestore updates (active across all devices simultaneously)
     const unsubscribeFirestore = subscribeToWorkspace(
-      (remoteDocs) => {
-        if (Array.isArray(remoteDocs) && remoteDocs.length > 0) {
+      (rawRemoteDocs) => {
+        if (Array.isArray(rawRemoteDocs) && rawRemoteDocs.length > 0) {
+          const remoteDocs = migrateDocs(rawRemoteDocs);
           setDocs((currentDocs) => {
             if (isActivelyEditingRef.current && activeDocId) {
               const activeLocal = currentDocs.find((d) => d.id === activeDocId);
@@ -259,10 +281,11 @@ export default function App() {
           if (Array.isArray(data.docs) && data.docs.length > 0) {
             if (lastRevisionRef.current === 0 || data.revision > lastRevisionRef.current) {
               lastRevisionRef.current = data.revision;
+              const serverList = migrateDocs(data.docs);
               setDocs((currentDocs) => {
                 if (isActivelyEditingRef.current && activeDocId) {
                   const activeLocal = currentDocs.find((d) => d.id === activeDocId);
-                  const updatedList = data.docs.map((sDoc: DocItem) => {
+                  const updatedList = serverList.map((sDoc: DocItem) => {
                     if (sDoc.id === activeDocId && activeLocal) {
                       return { ...sDoc, content: activeLocal.content, title: activeLocal.title };
                     }
@@ -271,8 +294,8 @@ export default function App() {
                   saveStoredDocs(updatedList, false);
                   return updatedList;
                 }
-                saveStoredDocs(data.docs, false);
-                return data.docs;
+                saveStoredDocs(serverList, false);
+                return serverList;
               });
             }
           }
@@ -330,14 +353,16 @@ export default function App() {
     collabManagerRef.current = collab;
 
     collab.setCallbacks({
-      onWorkspaceSync: (serverDocs) => {
-        if (Array.isArray(serverDocs) && serverDocs.length > 0) {
+      onWorkspaceSync: (rawServerDocs) => {
+        if (Array.isArray(rawServerDocs) && rawServerDocs.length > 0) {
+          const serverDocs = migrateDocs(rawServerDocs);
           setDocs(serverDocs);
           saveStoredDocs(serverDocs, false);
           setSyncState((prev) => ({ ...prev, isSyncing: false, lastSyncedAt: Date.now() }));
         }
       },
-      onDocUpdated: (updatedDoc) => {
+      onDocUpdated: (rawUpdatedDoc) => {
+        const [updatedDoc] = migrateDocs([rawUpdatedDoc]);
         setDocs((prev) => {
           const idx = prev.findIndex((d) => d.id === updatedDoc.id);
           const next = idx >= 0
@@ -490,16 +515,27 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Visible workspace documents (excluding internal workspace evaluation store)
+  const visibleDocs = useMemo(() => {
+    return docs.filter((d) => d.id !== EVALUATION_DOC_ID);
+  }, [docs]);
+
+  // Evaluation workspace data synced via Firestore & Express backend
+  const evaluationData = useMemo(() => {
+    const evalDoc = docs.find((d) => d.id === EVALUATION_DOC_ID);
+    return evalDoc?.evaluationData || DEFAULT_EVALUATION_DATA;
+  }, [docs]);
+
   // Current active doc
   const activeDoc = useMemo(() => {
-    return docs.find((d) => d.id === activeDocId) || docs[0] || null;
-  }, [docs, activeDocId]);
+    return visibleDocs.find((d) => d.id === activeDocId) || visibleDocs[0] || null;
+  }, [visibleDocs, activeDocId]);
 
   // Child sub-pages for active doc
   const subPages = useMemo(() => {
     if (!activeDoc) return [];
-    return docs.filter((d) => d.parentId === activeDoc.id);
-  }, [docs, activeDoc]);
+    return visibleDocs.filter((d) => d.parentId === activeDoc.id);
+  }, [visibleDocs, activeDoc]);
 
   // Handlers
   const handleSelectDoc = (id: string) => {
@@ -568,7 +604,7 @@ export default function App() {
         true
       );
       if (activeDocId === id) {
-        const remaining = docs.filter((d) => d.id !== id && d.parentId !== id);
+        const remaining = visibleDocs.filter((d) => d.id !== id && d.parentId !== id);
         setActiveDocId(remaining[0]?.id || null);
       }
     }
@@ -623,12 +659,65 @@ export default function App() {
     );
   };
 
+  const LOCKED_CONTENT_PLACEHOLDER =
+    '🔒 Dokumen ini terkunci dengan enkripsi E2EE. Masukkan password untuk membaca dan menyunting.';
+
   const activeTypingTimerRef = useRef<number | null>(null);
 
   const handleUpdateActiveDoc = (updated: Partial<DocItem>) => {
     if (!activeDocId) return;
     const current = docs.find((d) => d.id === activeDocId);
     if (!current) return;
+
+    const unlockedSession = unlockedDocsRef.current[activeDocId];
+    const isEditingUnlockedEncrypted =
+      Boolean(current.isEncrypted && unlockedSession && updated.content !== undefined);
+
+    if (isEditingUnlockedEncrypted && updated.content !== undefined) {
+      const nextPlaintext = updated.content;
+      setUnlockedDocs((prev) => ({
+        ...prev,
+        [activeDocId]: { ...unlockedSession, content: nextPlaintext },
+      }));
+      unlockedDocsRef.current[activeDocId] = { ...unlockedSession, content: nextPlaintext };
+
+      if (encryptEditTimersRef.current[activeDocId]) {
+        clearTimeout(encryptEditTimersRef.current[activeDocId]);
+      }
+      const targetDocId = activeDocId;
+      const sessionPass = unlockedSession.passphrase;
+      encryptEditTimersRef.current[activeDocId] = window.setTimeout(async () => {
+        try {
+          const payload = await encryptText(nextPlaintext, sessionPass);
+          const latestDoc = docs.find((d) => d.id === targetDocId) || current;
+          const nowTs = Date.now();
+          const reEncryptedDoc: DocItem = {
+            ...latestDoc,
+            isEncrypted: true,
+            encryptedPayload: payload,
+            content: LOCKED_CONTENT_PLACEHOLDER,
+            updatedAt: nowTs,
+            lastModifiedBy: {
+              userId: userProfile.userId,
+              name: userProfile.name,
+              color: userProfile.color,
+              timestamp: nowTs,
+              action: 'Menyunting dokumen terenkripsi',
+            },
+          };
+          updateDocs(
+            (prev) => prev.map((d) => (d.id === targetDocId ? reEncryptedDoc : d)),
+            targetDocId,
+            undefined,
+            { type: 'upsert', doc: reEncryptedDoc },
+            false
+          );
+        } catch (err) {
+          console.error('Failed to re-encrypt document:', err);
+        }
+      }, 450);
+      return;
+    }
 
     const statusChanged = updated.status !== undefined && updated.status !== current.status;
     const now = Date.now();
@@ -735,26 +824,342 @@ export default function App() {
     );
   };
 
-  // E2EE Vault unlock
-  const handleUnlockVault = async (passphrase: string): Promise<boolean> => {
-    try {
-      if (passphrase.length < 4) return false;
-      setIsVaultUnlocked(true);
-      setVaultPassphrase(passphrase);
+  const handleUpdateEvaluation = (updatedEval: EvaluationData, actionLabel?: string) => {
+    const now = Date.now();
+    const existing = docs.find((d) => d.id === EVALUATION_DOC_ID);
+    const mergedEvalDoc: DocItem = {
+      id: EVALUATION_DOC_ID,
+      title: 'Evaluasi Workspace',
+      icon: '📊',
+      parentId: null,
+      content: '',
+      tags: ['Evaluasi'],
+      status: 'in_progress',
+      priority: 'medium',
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      evaluationData: updatedEval,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: actionLabel || 'Memperbarui data evaluasi',
+      },
+    };
 
-      if (activeDoc?.isEncrypted) {
-        updateDocs((prev) =>
-          prev.map((d) => {
-            if (d.id === activeDoc.id) {
+    updateDocs(
+      (prev) => {
+        const hasExisting = prev.some((d) => d.id === EVALUATION_DOC_ID);
+        return hasExisting
+          ? prev.map((d) => (d.id === EVALUATION_DOC_ID ? mergedEvalDoc : d))
+          : [...prev, mergedEvalDoc];
+      },
+      EVALUATION_DOC_ID,
+      undefined,
+      { type: 'upsert', doc: mergedEvalDoc },
+      true
+    );
+  };
+
+  const handleSaveMobileProjectDoc = (updatedDoc: DocItem) => {
+    const now = Date.now();
+    const projectStats = updatedDoc.projectData
+      ? {
+          completedTasks:
+            updatedDoc.projectData.tasks.filter((t) => t.completed).length +
+            updatedDoc.projectData.baseCompletedTasks,
+          totalTasks:
+            updatedDoc.projectData.tasks.length + updatedDoc.projectData.baseTotalTasks,
+          status: (updatedDoc.status === 'archived' ? 'in_progress' : updatedDoc.status) as
+            | 'not_started'
+            | 'in_progress'
+            | 'completed',
+        }
+      : null;
+
+    const existingEvalDoc = docs.find((d) => d.id === EVALUATION_DOC_ID);
+    const currentEvalData = existingEvalDoc?.evaluationData || DEFAULT_EVALUATION_DATA;
+    const syncedEvalData: EvaluationData | null = projectStats
+      ? {
+          ...currentEvalData,
+          projects: currentEvalData.projects.map((p) => {
+            const matchesDoc =
+              p.linkedDocId === updatedDoc.id ||
+              (updatedDoc.id === 'doc-habit-tracker' && p.name.toLowerCase().includes('habit')) ||
+              (updatedDoc.id === 'doc-kopi-sore' && p.name.toLowerCase().includes('kopi sore'));
+            if (matchesDoc) {
               return {
-                ...d,
-                content: `# 🔒 Catatan Rahasia yang Berhasil Terbuka\n\nBrankas **End-to-End Encryption** berhasil dibuka dengan kunci privat lokal Anda.\n\n### Data Terproteksi:\n- Kode API Rahasia: \`sk-prod-994129x-vault\`\n- Akses Kunci: Terverifikasi AES-GCM 256-bit\n- Hanya Anda yang memiliki akses ke memori ini.`,
+                ...p,
+                linkedDocId: updatedDoc.id,
+                completedTasks: projectStats.completedTasks,
+                totalTasks: projectStats.totalTasks,
+                status: projectStats.status,
               };
             }
-            return d;
-          })
-        );
+            return p;
+          }),
+        }
+      : null;
+
+    const mergedEvalDoc: DocItem | null = syncedEvalData
+      ? {
+          id: EVALUATION_DOC_ID,
+          title: 'Evaluasi Workspace',
+          icon: '📊',
+          parentId: null,
+          content: '',
+          tags: ['Evaluasi'],
+          status: 'in_progress',
+          priority: 'medium',
+          createdAt: existingEvalDoc?.createdAt || now,
+          updatedAt: now,
+          evaluationData: syncedEvalData,
+          lastModifiedBy: updatedDoc.lastModifiedBy,
+        }
+      : null;
+
+    updateDocs(
+      (prev) => {
+        const hasProject = prev.some((d) => d.id === updatedDoc.id);
+        let next = hasProject
+          ? prev.map((d) => (d.id === updatedDoc.id ? updatedDoc : d))
+          : [updatedDoc, ...prev];
+        if (mergedEvalDoc) {
+          const hasEval = next.some((d) => d.id === EVALUATION_DOC_ID);
+          next = hasEval
+            ? next.map((d) => (d.id === EVALUATION_DOC_ID ? mergedEvalDoc : d))
+            : [...next, mergedEvalDoc];
+        }
+        return next;
+      },
+      updatedDoc.id,
+      updatedDoc.content,
+      { type: 'upsert', doc: updatedDoc },
+      true
+    );
+
+    if (mergedEvalDoc) {
+      collabManagerRef.current?.sendDocUpsert(mergedEvalDoc);
+      saveDocToFirestore(mergedEvalDoc).catch(() => {});
+      fetch('/api/docs/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mutation: { type: 'upsert', doc: mergedEvalDoc } }),
+      }).catch(() => {});
+    }
+  };
+
+  // Lock & encrypt a document using the provided password
+  const handleLockDocWithPassword = async (docId: string, passphrase: string): Promise<boolean> => {
+    const current = docs.find((d) => d.id === docId);
+    if (!current || !passphrase) return false;
+
+    if (encryptEditTimersRef.current[docId]) {
+      clearTimeout(encryptEditTimersRef.current[docId]);
+      delete encryptEditTimersRef.current[docId];
+    }
+
+    const session = unlockedDocsRef.current[docId];
+    const plaintext =
+      session?.content !== undefined
+        ? session.content
+        : current.content === LOCKED_CONTENT_PLACEHOLDER
+          ? ''
+          : current.content || '';
+
+    const encryptedPayload = await encryptText(plaintext, passphrase);
+    const now = Date.now();
+
+    const merged: DocItem = {
+      ...current,
+      isEncrypted: true,
+      encryptedPayload,
+      content: LOCKED_CONTENT_PLACEHOLDER,
+      updatedAt: now,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: 'Mengunci dokumen dengan password (E2EE)',
+      },
+    };
+
+    setUnlockedDocs((prev) => {
+      if (!prev[docId]) return prev;
+      const next = { ...prev };
+      delete next[docId];
+      return next;
+    });
+    delete unlockedDocsRef.current[docId];
+
+    updateDocs(
+      (prev) => prev.map((d) => (d.id === docId ? merged : d)),
+      docId,
+      undefined,
+      { type: 'upsert', doc: merged },
+      true
+    );
+
+    return true;
+  };
+
+  // Unlock a locked document by verifying the exact same password used to lock it
+  const handleUnlockDocWithPassword = async (
+    docId: string,
+    passphrase: string,
+    options?: { permanent?: boolean }
+  ): Promise<boolean> => {
+    const current = docs.find((d) => d.id === docId);
+    if (!current || !passphrase) return false;
+
+    let plaintext = '';
+
+    if (current.encryptedPayload) {
+      // Compatibility for pre-seeded demo doc-secure dummy payload
+      if (current.id === 'doc-secure' && current.encryptedPayload.iv === 'xYz123456789') {
+        if (passphrase !== 'noverse2026') {
+          return false;
+        }
+        plaintext =
+          current.content && current.content !== LOCKED_CONTENT_PLACEHOLDER
+            ? current.content
+            : `# 🔒 Catatan Rahasia yang Berhasil Terbuka\n\nBrankas **End-to-End Encryption** berhasil dibuka dengan kunci privat lokal Anda.\n\n### Data Terproteksi:\n- Kode API Rahasia: \`sk-prod-994129x-vault\`\n- Akses Kunci: Terverifikasi AES-GCM 256-bit\n- Hanya Anda yang memiliki akses ke memori ini.`;
+
+        // Upgrade legacy demo payload to real AES-GCM ciphertext
+        if (!options?.permanent) {
+          try {
+            const upgradedPayload = await encryptText(plaintext, passphrase);
+            const now = Date.now();
+            const upgradedDoc: DocItem = {
+              ...current,
+              isEncrypted: true,
+              encryptedPayload: upgradedPayload,
+              content: LOCKED_CONTENT_PLACEHOLDER,
+              updatedAt: now,
+            };
+            updateDocs(
+              (prev) => prev.map((d) => (d.id === docId ? upgradedDoc : d)),
+              docId,
+              undefined,
+              { type: 'upsert', doc: upgradedDoc },
+              true
+            );
+          } catch {}
+        }
+      } else {
+        try {
+          plaintext = await decryptText(current.encryptedPayload, passphrase);
+        } catch {
+          return false;
+        }
       }
+    } else {
+      // Fallback if an older doc was marked isEncrypted without encryptedPayload
+      plaintext = current.content === LOCKED_CONTENT_PLACEHOLDER ? '' : current.content || '';
+    }
+
+    if (options?.permanent) {
+      if (encryptEditTimersRef.current[docId]) {
+        clearTimeout(encryptEditTimersRef.current[docId]);
+        delete encryptEditTimersRef.current[docId];
+      }
+      setUnlockedDocs((prev) => {
+        if (!prev[docId]) return prev;
+        const next = { ...prev };
+        delete next[docId];
+        return next;
+      });
+      delete unlockedDocsRef.current[docId];
+
+      const now = Date.now();
+      const merged: DocItem = {
+        ...current,
+        isEncrypted: false,
+        encryptedPayload: undefined,
+        content: plaintext,
+        updatedAt: now,
+        lastModifiedBy: {
+          userId: userProfile.userId,
+          name: userProfile.name,
+          color: userProfile.color,
+          timestamp: now,
+          action: 'Menonaktifkan kunci dokumen (E2EE)',
+        },
+      };
+
+      updateDocs(
+        (prev) => prev.map((d) => (d.id === docId ? merged : d)),
+        docId,
+        plaintext,
+        { type: 'upsert', doc: merged },
+        true
+      );
+      return true;
+    }
+
+    const sessionEntry = { content: plaintext, passphrase };
+    unlockedDocsRef.current[docId] = sessionEntry;
+    setUnlockedDocs((prev) => ({ ...prev, [docId]: sessionEntry }));
+    return true;
+  };
+
+  // Re-lock an unlocked encrypted document immediately (flushing latest edits)
+  const handleRelockDocSession = async (docId: string): Promise<void> => {
+    const current = docs.find((d) => d.id === docId);
+    const session = unlockedDocsRef.current[docId];
+    if (!current || !session) return;
+
+    if (encryptEditTimersRef.current[docId]) {
+      clearTimeout(encryptEditTimersRef.current[docId]);
+      delete encryptEditTimersRef.current[docId];
+    }
+
+    const encryptedPayload = await encryptText(session.content, session.passphrase);
+    const now = Date.now();
+    const merged: DocItem = {
+      ...current,
+      isEncrypted: true,
+      encryptedPayload,
+      content: LOCKED_CONTENT_PLACEHOLDER,
+      updatedAt: now,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: 'Mengunci kembali dokumen (E2EE)',
+      },
+    };
+
+    setUnlockedDocs((prev) => {
+      const next = { ...prev };
+      delete next[docId];
+      return next;
+    });
+    delete unlockedDocsRef.current[docId];
+
+    updateDocs(
+      (prev) => prev.map((d) => (d.id === docId ? merged : d)),
+      docId,
+      undefined,
+      { type: 'upsert', doc: merged },
+      true
+    );
+  };
+
+  // E2EE Vault unlock (TopBar modal)
+  const handleUnlockVault = async (passphrase: string): Promise<boolean> => {
+    try {
+      if (activeDoc?.isEncrypted) {
+        const ok = await handleUnlockDocWithPassword(activeDoc.id, passphrase, { permanent: false });
+        if (!ok) return false;
+      } else if (passphrase.length < 4) {
+        return false;
+      }
+      setIsVaultUnlocked(true);
+      setVaultPassphrase(passphrase);
       return true;
     } catch (err) {
       console.error('Decryption failed:', err);
@@ -765,6 +1170,9 @@ export default function App() {
   const handleLockVault = () => {
     setIsVaultUnlocked(false);
     setVaultPassphrase(null);
+    Object.keys(unlockedDocsRef.current).forEach((docId) => {
+      handleRelockDocSession(docId).catch(() => {});
+    });
   };
 
   // Reminder Snooze & Dismiss
@@ -840,7 +1248,7 @@ export default function App() {
     <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-slate-950 font-sans">
       {/* Sidebar Navigation (with Mobile Drawer Slide-over) */}
       <Sidebar
-        docs={docs}
+        docs={visibleDocs}
         activeDocId={activeDocId}
         activeView={activeView}
         lang={lang}
@@ -864,7 +1272,7 @@ export default function App() {
         {/* Top Header Bar */}
         <TopBar
           activeDoc={activeDoc}
-          docs={docs}
+          docs={visibleDocs}
           activeView={activeView}
           theme={theme}
           lang={lang}
@@ -892,7 +1300,7 @@ export default function App() {
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
           {activeView === 'overview' && (
             <WorkspaceOverview
-              docs={docs}
+              docs={visibleDocs}
               lang={lang}
               collaborators={collaborators}
               userProfile={userProfile}
@@ -910,17 +1318,24 @@ export default function App() {
               lang={lang}
               collaborators={collaborators}
               isVaultUnlocked={isVaultUnlocked}
+              isDocUnlocked={!activeDoc.isEncrypted || Boolean(unlockedDocs[activeDoc.id])}
+              unlockedContent={unlockedDocs[activeDoc.id]?.content}
               onUpdateDoc={handleUpdateActiveDoc}
               onSelectDoc={handleSelectDoc}
               onCreateSubPage={handleCreateDoc}
               onSendCursor={(cursor) => collabManagerRef.current?.sendCursorMove(cursor)}
               onUnlockVault={handleUnlockVault}
+              onLockWithPassword={(passphrase) => handleLockDocWithPassword(activeDoc.id, passphrase)}
+              onUnlockWithPassword={(passphrase, permanent) =>
+                handleUnlockDocWithPassword(activeDoc.id, passphrase, { permanent })
+              }
+              onRelockDoc={() => handleRelockDocSession(activeDoc.id)}
             />
           )}
 
           {activeView === 'database_table' && (
             <DatabaseView
-              docs={docs}
+              docs={visibleDocs}
               currentMode="table"
               lang={lang}
               onSelectDoc={handleSelectDoc}
@@ -932,7 +1347,7 @@ export default function App() {
 
           {activeView === 'database_board' && (
             <DatabaseView
-              docs={docs}
+              docs={visibleDocs}
               currentMode="board"
               lang={lang}
               onSelectDoc={handleSelectDoc}
@@ -944,7 +1359,7 @@ export default function App() {
 
           {activeView === 'database_calendar' && (
             <DatabaseView
-              docs={docs}
+              docs={visibleDocs}
               currentMode="calendar"
               lang={lang}
               onSelectDoc={handleSelectDoc}
@@ -956,14 +1371,14 @@ export default function App() {
 
           {activeView === 'analytics' && (
             <AnalyticsDashboard
-              docs={docs}
+              docs={visibleDocs}
               lang={lang}
             />
           )}
 
           {activeView === 'project_web' && (
             <ProjectWebDetail
-              docs={docs}
+              docs={visibleDocs}
               lang={lang}
               collaborators={collaborators}
               userProfile={userProfile}
@@ -974,6 +1389,36 @@ export default function App() {
               onToggleFavorite={handleToggleFavorite}
             />
           )}
+
+          {activeView === 'project_mobile' && (
+            <ProjectMobileDetail
+              docs={visibleDocs}
+              userProfile={userProfile}
+              onSelectDoc={handleSelectDoc}
+              onSaveMobileDoc={handleSaveMobileProjectDoc}
+              onCreateDoc={handleCreateDoc}
+            />
+          )}
+
+          {activeView === 'project_design' && (
+            <ProjectDesignDetail
+              docs={visibleDocs}
+              userProfile={userProfile}
+              onSelectDoc={handleSelectDoc}
+              onSaveDesignDoc={handleSaveMobileProjectDoc}
+              onCreateDoc={handleCreateDoc}
+            />
+          )}
+
+          {activeView === 'evaluasi' && (
+            <EvaluasiPage
+              evaluationData={evaluationData}
+              userProfile={userProfile}
+              onUpdateEvaluation={handleUpdateEvaluation}
+              onSelectView={setActiveView}
+              onSelectDoc={handleSelectDoc}
+            />
+          )}
         </main>
       </div>
 
@@ -981,7 +1426,7 @@ export default function App() {
       <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-[#121211]/95 backdrop-blur-md border-t border-[#EAEAE5] dark:border-[#2B2B28] z-30 flex items-center justify-around px-2">
         <button
           onClick={() => setActiveView('overview')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'overview'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
@@ -994,9 +1439,9 @@ export default function App() {
         <button
           onClick={() => {
             setActiveView('editor');
-            if (!activeDocId && docs[0]) setActiveDocId(docs[0].id);
+            if (!activeDocId && visibleDocs[0]) setActiveDocId(visibleDocs[0].id);
           }}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'editor'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
@@ -1008,7 +1453,7 @@ export default function App() {
 
         <button
           onClick={() => setActiveView('database_table')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_table'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
@@ -1020,7 +1465,7 @@ export default function App() {
 
         <button
           onClick={() => setActiveView('database_board')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_board'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
@@ -1032,7 +1477,7 @@ export default function App() {
 
         <button
           onClick={() => setActiveView('database_calendar')}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_calendar'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
@@ -1040,6 +1485,18 @@ export default function App() {
         >
           <CalendarIcon size={17} />
           <span>Kalender</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('evaluasi')}
+          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'evaluasi'
+              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+              : 'text-[#777973]'
+          }`}
+        >
+          <ChartNoAxesCombined size={17} />
+          <span>Evaluasi</span>
         </button>
       </nav>
 
@@ -1057,7 +1514,7 @@ export default function App() {
       {/* Notification & Reminders Drawer */}
       <NotificationModal
         isOpen={showNotificationModal}
-        docs={docs}
+        docs={visibleDocs}
         lang={lang}
         onClose={() => setShowNotificationModal(false)}
         onSelectDoc={handleSelectDoc}

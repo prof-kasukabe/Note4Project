@@ -429,7 +429,22 @@ export const WorkspaceOverview: React.FC<WorkspaceOverviewProps> = ({
               <div className="divide-y divide-[#EAEAE5] dark:divide-[#2B2B28] min-w-[760px]">
                 {filteredProjects.map((doc, idx) => {
                   const isDone = doc.status === 'completed';
-                  const taskPercent = isDone ? 100 : doc.status === 'in_progress' ? 65 : 15;
+                  const projectTotal = doc.projectData
+                    ? doc.projectData.tasks.length + doc.projectData.baseTotalTasks
+                    : 8;
+                  const projectCompleted = doc.projectData
+                    ? doc.projectData.tasks.filter((t) => t.completed).length +
+                      doc.projectData.baseCompletedTasks
+                    : isDone
+                    ? 8
+                    : 5;
+                  const taskPercent = doc.projectData
+                    ? Math.min(100, Math.round((projectCompleted / Math.max(1, projectTotal)) * 100))
+                    : isDone
+                    ? 100
+                    : doc.status === 'in_progress'
+                    ? 65
+                    : 15;
                   const category = doc.tags?.[0] || 'Produk & Rencana';
                   const modifier = doc.lastModifiedBy?.name || 'Randye';
                   const modifierColor = doc.lastModifiedBy?.color || '#ECEAE4';
@@ -440,6 +455,10 @@ export const WorkspaceOverview: React.FC<WorkspaceOverviewProps> = ({
                       onClick={() => {
                         if (doc.id === 'doc-portfolio-web' || (doc.title && doc.title.toLowerCase().includes('website portofolio'))) {
                           onSelectView('project_web');
+                        } else if (doc.id === 'doc-habit-tracker' || (doc.title && doc.title.toLowerCase().includes('habit tracker'))) {
+                          onSelectView('project_mobile');
+                        } else if (doc.id === 'doc-kopi-sore' || (doc.title && doc.title.toLowerCase().includes('kopi sore'))) {
+                          onSelectView('project_design');
                         } else {
                           onSelectDoc(doc.id);
                         }
@@ -479,7 +498,9 @@ export const WorkspaceOverview: React.FC<WorkspaceOverviewProps> = ({
                       <div className="w-40 px-2 space-y-1.5">
                         <div className="flex items-center justify-between text-[11px] font-mono">
                           <span className="text-[#282925] dark:text-[#EDEDE8] font-medium">{taskPercent}%</span>
-                          <span className="text-[10px] text-[#777973]">{isDone ? 'Semua selesai' : '5/8 tugas'}</span>
+                          <span className="text-[10px] text-[#777973]">
+                            {isDone ? 'Semua selesai' : `${projectCompleted}/${projectTotal} tugas`}
+                          </span>
                         </div>
                         <div className="w-full h-[5px] bg-[#ECEEE9] dark:bg-[#2B2B28] rounded-full overflow-hidden">
                           <div
@@ -561,6 +582,10 @@ export const WorkspaceOverview: React.FC<WorkspaceOverviewProps> = ({
                         onClick={() => {
                           if (item.id === 'doc-portfolio-web' || (item.title && item.title.toLowerCase().includes('website portofolio'))) {
                             onSelectView('project_web');
+                          } else if (item.id === 'doc-habit-tracker' || (item.title && item.title.toLowerCase().includes('habit tracker'))) {
+                            onSelectView('project_mobile');
+                          } else if (item.id === 'doc-kopi-sore' || (item.title && item.title.toLowerCase().includes('kopi sore'))) {
+                            onSelectView('project_design');
                           } else {
                             onSelectDoc(item.id);
                           }

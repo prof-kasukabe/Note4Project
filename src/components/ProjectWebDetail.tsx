@@ -274,7 +274,7 @@ export const ProjectWebDetail: React.FC<ProjectWebDetailProps> = ({
 
             {/* Main Title */}
             <h1 className="text-[28px] sm:text-[34px] font-normal leading-[1.25] text-[#282925] dark:text-[#EDEDE8] tracking-tight">
-              Website portofolio
+              Website project
             </h1>
 
             {/* Description */}

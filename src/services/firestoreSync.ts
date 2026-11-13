@@ -9,6 +9,7 @@ import {
   writeBatch,
   query,
   orderBy,
+  deleteField,
 } from 'firebase/firestore';
 import { db, auth, initAuth } from '../firebase';
 import { DocItem } from '../types';
@@ -89,6 +90,9 @@ function cleanDocPayload(d: Partial<DocItem>): Record<string, unknown> {
       result[key] = value;
     }
   }
+  if (d.isEncrypted === false) {
+    result.encryptedPayload = deleteField();
+  }
   return result;
 }
 
@@ -130,13 +134,40 @@ export function subscribeToWorkspace(
 }
 
 /**
+ * Firestore forbids client document IDs matching /^__.*__$/ (reserved resource IDs).
+ * Remap legacy '__workspace_evaluasi__' or reject other reserved patterns safely.
+ */
+function normalizeDocForFirestore(d: DocItem): DocItem | null {
+  if (d.id === '__workspace_evaluasi__') {
+    return { ...d, id: 'doc-workspace-evaluasi' };
+  }
+  if (/^__.*__$/.test(d.id)) {
+    return null;
+  }
+  return d;
+}
+
+function normalizeDocIdForFirestore(id: string): string | null {
+  if (id === '__workspace_evaluasi__') {
+    return 'doc-workspace-evaluasi';
+  }
+  if (/^__.*__$/.test(id)) {
+    return null;
+  }
+  return id;
+}
+
+/**
  * Save / Update a document in Firestore in real-time
  */
 export async function saveDocToFirestore(documentItem: DocItem): Promise<void> {
-  const docPath = `${COLLECTION_NAME}/${documentItem.id}`;
+  const safeDoc = normalizeDocForFirestore(documentItem);
+  if (!safeDoc) return;
+
+  const docPath = `${COLLECTION_NAME}/${safeDoc.id}`;
   try {
-    const docRef = doc(db, COLLECTION_NAME, documentItem.id);
-    const payload = cleanDocPayload(documentItem);
+    const docRef = doc(db, COLLECTION_NAME, safeDoc.id);
+    const payload = cleanDocPayload(safeDoc);
     await setDoc(docRef, payload, { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, docPath);
@@ -148,12 +179,18 @@ export async function saveDocToFirestore(documentItem: DocItem): Promise<void> {
  * Delete a document and its immediate sub-pages from Firestore
  */
 export async function deleteDocFromFirestore(docId: string, childIds: string[] = []): Promise<void> {
-  const docPath = `${COLLECTION_NAME}/${docId}`;
+  const safeId = normalizeDocIdForFirestore(docId);
+  if (!safeId) return;
+
+  const docPath = `${COLLECTION_NAME}/${safeId}`;
   try {
     const batch = writeBatch(db);
-    batch.delete(doc(db, COLLECTION_NAME, docId));
+    batch.delete(doc(db, COLLECTION_NAME, safeId));
     childIds.forEach((childId) => {
-      batch.delete(doc(db, COLLECTION_NAME, childId));
+      const safeChildId = normalizeDocIdForFirestore(childId);
+      if (safeChildId) {
+        batch.delete(doc(db, COLLECTION_NAME, safeChildId));
+      }
     });
     await batch.commit();
   } catch (err) {

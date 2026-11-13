@@ -25,7 +25,8 @@ import {
   ChevronsUpDown,
   ArrowRight,
   Star,
-  Lock
+  Lock,
+  ChartNoAxesCombined
 } from 'lucide-react';
 import { DocItem, ActiveView, Language, SyncState, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
@@ -88,7 +89,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )
     : docs;
 
-  const favoriteDocs = docs.filter((d) => d.isFavorite);
+  const favoriteDocs = docs.filter(
+    (d) =>
+      d.isFavorite &&
+      d.id !== 'doc-portfolio-web' &&
+      d.id !== 'doc-habit-tracker' &&
+      d.id !== 'doc-kopi-sore'
+  );
 
   const getChildren = (parentId: string | null) => {
     return filteredDocs.filter((d) => d.parentId === parentId);
@@ -297,6 +304,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <span className="text-[11px] text-[#777973]">{activeTasksCount || 7}</span>
             </button>
+
+            {/* Evaluasi (Figma: Menu evaluasi aktif bg #EAECE5, chart-no-axes-combined) */}
+            <button
+              onClick={() => handleViewClick('evaluasi')}
+              className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                activeView === 'evaluasi'
+                  ? 'bg-[#EAECE5] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                  : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ChartNoAxesCombined size={15} className={activeView === 'evaluasi' ? 'text-[#282925] dark:text-[#EDEDE8]' : 'text-[#777973]'} />
+                <span className="text-[13px]">Evaluasi</span>
+              </div>
+            </button>
           </nav>
 
           {/* 3. Halaman Workspace (Figma: HALAMAN + Proyek aktif 4, Kalender kerja, Catatan & Dokumen, Tim & Kolaborator 5) */}
@@ -417,18 +439,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
 
               <button
-                onClick={() => handleViewClick('database_board')}
-                className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
+                onClick={() => handleViewClick('project_mobile')}
+                className={`flex items-center gap-2.5 px-2.5 h-9 rounded-[5px] transition-colors text-left ${
+                  activeView === 'project_mobile'
+                    ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                    : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                }`}
               >
-                <Smartphone size={16} className="text-[#777973] shrink-0" />
+                <Smartphone size={16} className={activeView === 'project_mobile' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
                 <span className="text-[13px] truncate">Aplikasi Mobile</span>
               </button>
 
               <button
-                onClick={() => handleViewClick('database_table')}
-                className="flex items-center gap-2.5 px-2.5 h-9 rounded text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925] transition-colors text-left"
+                onClick={() => handleViewClick('project_design')}
+                className={`flex items-center gap-2.5 px-2.5 h-9 rounded-[5px] transition-colors text-left ${
+                  activeView === 'project_design'
+                    ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                    : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                }`}
               >
-                <Palette size={16} className="text-[#777973] shrink-0" />
+                <Palette size={16} className={activeView === 'project_design' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
                 <span className="text-[13px] truncate">Desain Sistem</span>
               </button>
 
