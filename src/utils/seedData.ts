@@ -28,9 +28,273 @@ export const COVER_PRESETS = [
   },
 ];
 
+export const formatProjectDeadline = (isoDate?: string, fallback = '16 Nov 2026'): string => {
+  if (!isoDate) return fallback;
+  const parsed = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return parsed.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+export const formatProjectDeadlineLong = (isoDate?: string, fallback = '16 November 2026'): string => {
+  if (!isoDate) return fallback;
+  const parsed = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return parsed.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
+export const buildProjectMarkdownContent = (
+  title: string,
+  icon: string,
+  deadline: string | undefined,
+  data: ProjectDetailData
+): string => {
+  const goalLines = (data.goals || [])
+    .map((g) => `- [${g.done ? 'x' : ' '}] ${g.text}`)
+    .join('\n');
+  const taskLines = data.tasks
+    .map((t) => `- [${t.completed ? 'x' : ' '}] ${t.title} (${t.assignee} · ${t.dueDate})`)
+    .join('\n');
+  const toolLines = data.toolLinks
+    .map((tl) => `- **${tl.name}**: ${tl.description}`)
+    .join('\n');
+
+  return `# ${icon || '📌'} ${title}
+
+**Kategori:** ${data.categoryLabel || 'Proyek Workspace'}  
+**Penanggung Jawab:** ${data.ownerName || 'Tim Workspace'}  
+**Kolaborator:** ${data.collaboratorsText || '-'}  
+**Tenggat:** ${formatProjectDeadlineLong(deadline, data.deadlineLabel || 'Belum ditetapkan')}  
+
+${data.tagline || ''}
+
+${data.aboutText || ''}
+
+${data.focusObjective ? `> **Fokus Pengerjaan:** ${data.focusObjective}` : ''}
+
+---
+
+### 🎯 Hasil yang Dituju
+${goalLines || '- [ ] Tetapkan target utama proyek'}
+
+### ✅ Daftar Tugas Proyek
+${taskLines || '- [ ] Belum ada tugas terdaftar'}
+
+### 📝 Catatan untuk Tim
+${data.teamNote || '-'}
+
+### 🛠️ Alat Kerja Terhubung
+${toolLines || '-'}
+`;
+};
+
+export const WEB_PROJECT_DOC_ID = 'doc-portfolio-web';
+
+export const DEFAULT_WEB_PROJECT_DATA: ProjectDetailData = {
+  categoryLabel: 'WEBSITE · DESAIN & PENGEMBANGAN',
+  tagline: 'Ruang untuk menampilkan karya, cerita, dan hal yang kamu kerjakan.',
+  aboutText:
+    'Website personal untuk menampilkan karya terpilih, profil, dan kontak. Fokus pada pengalaman yang ringan, responsif, dan mudah diperbarui.',
+  focusObjective: 'Website portofolio & etalase karya interaktif yang ringan di desktop dan mobile.',
+  ownerName: 'Andi Darma',
+  collaboratorsText: 'Andi, Nadia, Rafi',
+  visibilityLabel: 'Anggota workspace',
+  deadlineLabel: '13 Nov 2026',
+  priorityLabel: 'Sedang',
+  statusLabel: 'Dikerjakan',
+  teamNote:
+    'Pastikan setiap studi kasus memuat konteks, proses, dan hasil. Tinjau versi mobile sebelum website dipublikasikan.',
+  baseCompletedTasks: 17,
+  baseTotalTasks: 19,
+  tasks: [
+    {
+      id: 'task-pw-1',
+      title: 'Finalisasi desain halaman utama',
+      assignee: 'Nadia',
+      priority: 'Tinggi',
+      dueDate: 'Hari ini',
+      completed: false,
+    },
+    {
+      id: 'task-pw-2',
+      title: 'Perbaiki navigasi versi mobile',
+      assignee: 'Rafi',
+      priority: 'Sedang',
+      dueDate: 'Besok',
+      completed: false,
+    },
+    {
+      id: 'task-pw-3',
+      title: 'Tambahkan studi kasus proyek',
+      assignee: 'Andi',
+      priority: 'Sedang',
+      dueDate: '12 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-pw-4',
+      title: 'Uji responsivitas & aksesibilitas',
+      assignee: 'Rafi',
+      priority: 'Tinggi',
+      dueDate: '13 Nov',
+      completed: false,
+    },
+    {
+      id: 'task-pw-5',
+      title: 'Susun struktur halaman',
+      assignee: 'Andi',
+      priority: 'Sedang',
+      dueDate: 'Selesai',
+      completed: true,
+    },
+  ],
+  discussions: [
+    {
+      id: 'disc-1',
+      userName: 'Andi Darma',
+      userColor: '#6366F1',
+      text: 'Draft wireframe untuk studi kasus sudah diunggah di Figma. Silakan cek di tab Dokumen.',
+      timestamp: Date.now() - 3600000 * 3,
+    },
+    {
+      id: 'disc-2',
+      userName: 'Nadia',
+      userColor: '#EC4899',
+      text: 'Navigasi mobile sudah saya revisi agar lebih responsif di layar di bawah 400px.',
+      timestamp: Date.now() - 3600000 * 1,
+    },
+  ],
+  toolLinks: [
+    {
+      id: 'tool-pw-figma',
+      name: 'Figma',
+      description: 'Desain UI & prototipe',
+      url: 'https://figma.com/@portfolio-v2',
+    },
+    {
+      id: 'tool-pw-github',
+      name: 'GitHub',
+      description: 'Repositori & review perubahan',
+      url: 'https://github.com/noverse-workspace/portfolio-web',
+    },
+    {
+      id: 'tool-pw-vercel',
+      name: 'Vercel',
+      description: 'Preview & publikasi website',
+      url: 'https://portfolio-web.vercel.app',
+    },
+  ],
+  goals: [
+    { id: 'goal-pw-1', text: 'Halaman utama & profil', done: true },
+    { id: 'goal-pw-2', text: 'Studi kasus & kontak', done: false },
+    { id: 'goal-pw-3', text: 'Website responsif', done: true },
+  ],
+  projectDocs: [
+    {
+      id: 'pdoc-pw-1',
+      title: 'Struktur & konten website',
+      source: 'Noverse',
+      updatedLabel: 'Diperbarui hari ini',
+      category: 'Dokumen',
+      description: 'Kerangka arsitektur informasi, copywriting halaman utama, dan daftar proyek.',
+      linkedDocId: 'doc-portfolio-web',
+    },
+    {
+      id: 'pdoc-pw-2',
+      title: 'Desain antarmuka v2',
+      source: 'Figma',
+      updatedLabel: 'Diperbarui kemarin',
+      category: 'Desain',
+      description: 'Komponen UI, sistem tipografi, palet warna sage, dan prototipe responsif.',
+    },
+    {
+      id: 'pdoc-pw-3',
+      title: 'Panduan pengembangan',
+      source: 'GitHub',
+      updatedLabel: 'Diperbarui 8 Nov',
+      category: 'Panduan',
+      description: 'Standar deployment, optimasi aset, dan review pull request.',
+    },
+  ],
+  webSections: [
+    {
+      id: 'wsec-1',
+      title: 'Hero & Pengantar Profil',
+      subtitle: 'Menampilkan fokus layanan, proposisi nilai, dan ajakan kontak langsung.',
+      tag: 'Beranda',
+    },
+    {
+      id: 'wsec-2',
+      title: 'Etalase Karya & Studi Kasus',
+      subtitle: 'Sorotan proyek pilihan lengkap dengan konteks, proses, dan hasil terukur.',
+      tag: 'Portofolio',
+    },
+    {
+      id: 'wsec-3',
+      title: 'Tentang & Formulir Kontak',
+      subtitle: 'Ringkasan pengalaman tim serta kanal kolaborasi cepat.',
+      tag: 'Kontak',
+    },
+  ],
+};
+
+export const createDefaultWebProjectDoc = (): DocItem => ({
+  id: WEB_PROJECT_DOC_ID,
+  title: 'Website project',
+  icon: '🌐',
+  parentId: null,
+  tags: ['Website', 'Desain & Pengembangan'],
+  status: 'in_progress',
+  priority: 'medium',
+  deadline: '2026-11-13',
+  createdAt: Date.now() - 86400000 * 7,
+  updatedAt: Date.now() - 1800000,
+  isFavorite: true,
+  projectData: DEFAULT_WEB_PROJECT_DATA,
+  lastModifiedBy: {
+    userId: 'u_andi',
+    name: 'Andi Darma',
+    color: '#6366F1',
+    timestamp: Date.now() - 1800000,
+    action: 'Memperbarui dokumen Website project',
+  },
+  statusHistory: [
+    {
+      id: 'sh-pw-1',
+      fromStatus: 'not_started',
+      toStatus: 'in_progress',
+      changedBy: { userId: 'u_andi', name: 'Andi Darma', color: '#6366F1' },
+      timestamp: Date.now() - 86400000 * 3,
+    },
+  ],
+  content: buildProjectMarkdownContent(
+    'Website project',
+    '🌐',
+    '2026-11-13',
+    DEFAULT_WEB_PROJECT_DATA
+  ),
+});
+
 export const MOBILE_PROJECT_DOC_ID = 'doc-habit-tracker';
 
 export const DEFAULT_MOBILE_PROJECT_DATA: ProjectDetailData = {
+  categoryLabel: 'APLIKASI MOBILE · PRODUK DIGITAL',
+  tagline: 'Membangun kebiasaan baik, satu langkah kecil setiap hari.',
+  aboutText:
+    'Aplikasi mobile untuk mencatat kebiasaan harian, menjaga konsistensi, dan melihat progres. Fokus pada alur sederhana dan pengingat yang membantu.',
+  focusObjective: 'Aplikasi pelacak kebiasaan harian lintas Android & iOS dengan pengingat terjadwal.',
+  ownerName: 'Andi Darma',
+  collaboratorsText: 'Andi, Rafi',
+  visibilityLabel: 'Anggota workspace',
+  deadlineLabel: '16 Nov 2026',
+  priorityLabel: 'Sedang',
   statusLabel: 'Dikerjakan',
   teamNote: 'Pengingat harus bisa diatur per kebiasaan. Gunakan pola navigasi yang konsisten di Android dan iOS.',
   baseCompletedTasks: 7,
@@ -113,6 +377,45 @@ export const DEFAULT_MOBILE_PROJECT_DATA: ProjectDetailData = {
       url: 'https://console.firebase.google.com',
     },
   ],
+  goals: [
+    { id: 'goal-hm-1', text: 'Onboarding & daftar kebiasaan', done: false },
+    { id: 'goal-hm-2', text: 'Pengingat harian', done: false },
+    { id: 'goal-hm-3', text: 'Statistik progres mingguan', done: true },
+  ],
+  projectDocs: [
+    {
+      id: 'pdoc-hm-1',
+      title: 'Alur pengguna & wireframe',
+      source: 'Figma',
+      updatedLabel: 'Diperbarui hari ini',
+      category: 'Desain',
+      description: 'Sketsa alur pendaftaran hingga checklist kebiasaan harian.',
+    },
+    {
+      id: 'pdoc-hm-2',
+      title: 'Spesifikasi habit & pengingat',
+      source: 'Noverse',
+      updatedLabel: 'Diperbarui 9 Nov',
+      category: 'Dokumen',
+      description: 'Aturan penjadwalan pengingat, streak, dan penyimpanan offline.',
+      linkedDocId: MOBILE_PROJECT_DOC_ID,
+    },
+    {
+      id: 'pdoc-hm-3',
+      title: 'Catatan pengujian aplikasi',
+      source: 'Noverse',
+      updatedLabel: 'Diperbarui 8 Nov',
+      category: 'Pengujian',
+      description: 'Laporan QA kompatibilitas notifikasi Android & iOS.',
+      linkedDocId: 'doc-sprint',
+    },
+  ],
+  mobileFeatures: [
+    { id: 'h-1', name: 'Minum air 2 liter', schedule: '07:30 · Setiap hari', streak: 12, doneToday: true, reminderOn: true },
+    { id: 'h-2', name: 'Baca buku 20 menit', schedule: '21:00 · Malam', streak: 9, doneToday: true, reminderOn: true },
+    { id: 'h-3', name: 'Olahraga ringan', schedule: '06:30 · Sen, Rab, Jum', streak: 5, doneToday: false, reminderOn: true },
+    { id: 'h-4', name: 'Jurnal refleksi harian', schedule: '22:00 · Setiap hari', streak: 7, doneToday: false, reminderOn: false },
+  ],
 };
 
 export const createDefaultMobileProjectDoc = (): DocItem => ({
@@ -144,29 +447,27 @@ export const createDefaultMobileProjectDoc = (): DocItem => ({
       timestamp: Date.now() - 86400000 * 2,
     },
   ],
-  content: `# 📱 Aplikasi habit tracker
-
-**Kategori:** Aplikasi mobile · Produk digital  
-**Penanggung Jawab:** Andi Darma  
-**Tenggat:** 16 November 2026  
-
-Aplikasi mobile untuk mencatat kebiasaan harian, menjaga konsistensi, dan melihat progres. Fokus pada alur sederhana dan pengingat yang membantu.
-
----
-
-### 🎯 Hasil yang Dituju
-- [ ] Onboarding & daftar kebiasaan
-- [ ] Pengingat harian
-- [x] Statistik progres mingguan
-
-### 📝 Catatan untuk Tim
-Pengingat harus bisa diatur per kebiasaan. Gunakan pola navigasi yang konsisten di Android dan iOS.
-`,
+  content: buildProjectMarkdownContent(
+    'Aplikasi habit tracker',
+    '📱',
+    '2026-11-16',
+    DEFAULT_MOBILE_PROJECT_DATA
+  ),
 });
 
 export const DESIGN_PROJECT_DOC_ID = 'doc-kopi-sore';
 
 export const DEFAULT_DESIGN_PROJECT_DATA: ProjectDetailData = {
+  categoryLabel: 'DESAIN · IDENTITAS MEREK',
+  tagline: 'Identitas yang hangat untuk menemani setiap cerita di sore hari.',
+  aboutText:
+    'Merancang identitas visual Kopi Sore yang hangat, bersahaja, dan dekat. Mencakup logo, warna, tipografi, kemasan, serta panduan penggunaan merek.',
+  focusObjective: 'Sistem identitas visual & panduan merek lengkap dari logomark, palet warna, hingga kemasan.',
+  ownerName: 'Nadia Putri',
+  collaboratorsText: 'Nadia, Salsa',
+  visibilityLabel: 'Anggota workspace',
+  deadlineLabel: '20 Nov 2026',
+  priorityLabel: 'Sedang',
   statusLabel: 'Dikerjakan',
   teamNote: 'Pertahankan nuansa hangat dan natural. Pastikan logo tetap terbaca pada ukuran kecil serta versi satu warna.',
   baseCompletedTasks: 5,
@@ -249,6 +550,44 @@ export const DEFAULT_DESIGN_PROJECT_DATA: ProjectDetailData = {
       url: 'https://drive.google.com',
     },
   ],
+  goals: [
+    { id: 'goal-ks-1', text: 'Logo utama & variasi', done: false },
+    { id: 'goal-ks-2', text: 'Palet warna & tipografi', done: true },
+    { id: 'goal-ks-3', text: 'Panduan merek & kemasan', done: false },
+  ],
+  projectDocs: [
+    {
+      id: 'pdoc-ks-1',
+      title: 'Moodboard & arah visual',
+      source: 'Figma',
+      updatedLabel: 'Diperbarui hari ini',
+      category: 'Referensi',
+      description: 'Referensi fotografi senja hangat, tekstur kertas daur ulang, dan gaya minimalis.',
+    },
+    {
+      id: 'pdoc-ks-2',
+      title: 'Eksplorasi logo Kopi Sore',
+      source: 'Illustrator',
+      updatedLabel: 'Diperbarui 9 Nov',
+      category: 'Desain',
+      description: 'Variasi logomark primer, monokrom stempel cup, dan batas aman jarak logo.',
+    },
+    {
+      id: 'pdoc-ks-3',
+      title: 'Panduan identitas merek',
+      source: 'Noverse',
+      updatedLabel: 'Diperbarui 8 Nov',
+      category: 'Panduan',
+      description: 'Standar penggunaan warna, pasangan font, serta aplikasi pada kemasan.',
+      linkedDocId: DESIGN_PROJECT_DOC_ID,
+    },
+  ],
+  designPalette: [
+    { id: 'pal-1', name: 'Espresso Panggang', hex: '#282925', role: 'Teks & monogram utama' },
+    { id: 'pal-2', name: 'Tanah Terakota', hex: '#8B6935', role: 'Aksen hangat & stempel' },
+    { id: 'pal-3', name: 'Sage Sore', hex: '#567561', role: 'Identitas alami & label' },
+    { id: 'pal-4', name: 'Krem Gading', hex: '#F8F8F6', role: 'Permukaan kemasan' },
+  ],
 };
 
 export const createDefaultDesignProjectDoc = (): DocItem => ({
@@ -280,76 +619,16 @@ export const createDefaultDesignProjectDoc = (): DocItem => ({
       timestamp: Date.now() - 86400000 * 2,
     },
   ],
-  content: `# 🎨 Identitas Kopi Sore
-
-**Kategori:** Desain · Identitas merek  
-**Penanggung Jawab:** Nadia Putri  
-**Tenggat:** 20 November 2026  
-
-Merancang identitas visual Kopi Sore yang hangat, bersahaja, dan dekat. Mencakup logo, warna, tipografi, kemasan, serta panduan penggunaan merek.
-
----
-
-### 🎯 Hasil yang Dituju
-- [ ] Logo utama & variasi
-- [x] Palet warna & tipografi
-- [ ] Panduan merek & kemasan
-
-### 📝 Catatan untuk Tim
-Pertahankan nuansa hangat dan natural. Pastikan logo tetap terbaca pada ukuran kecil serta versi satu warna.
-`,
+  content: buildProjectMarkdownContent(
+    'Identitas Kopi Sore',
+    '🎨',
+    '2026-11-20',
+    DEFAULT_DESIGN_PROJECT_DATA
+  ),
 });
 
 export const INITIAL_DOCS: DocItem[] = [
-  {
-    id: 'doc-portfolio-web',
-    title: 'Website portofolio',
-    icon: '🌐',
-    parentId: null,
-    tags: ['Website', 'Desain & Pengembangan'],
-    status: 'in_progress',
-    priority: 'medium',
-    deadline: '2026-11-13',
-    createdAt: Date.now() - 86400000 * 7,
-    updatedAt: Date.now() - 1800000,
-    isFavorite: true,
-    lastModifiedBy: {
-      userId: 'u_andi',
-      name: 'Andi Darma',
-      color: '#6366F1',
-      timestamp: Date.now() - 1800000,
-      action: 'Memperbarui dokumen Website Portofolio',
-    },
-    statusHistory: [
-      {
-        id: 'sh-pw-1',
-        fromStatus: 'not_started',
-        toStatus: 'in_progress',
-        changedBy: { userId: 'u_andi', name: 'Andi Darma', color: '#6366F1' },
-        timestamp: Date.now() - 86400000 * 3,
-      },
-    ],
-    content: `# 🌐 Website Portofolio
-
-**Kategori:** Website · Desain & Pengembangan  
-**Penanggung Jawab:** Andi Darma  
-**Tenggat:** 13 November 2026  
-
-Ruang untuk menampilkan karya, cerita, dan hal yang kamu kerjakan. Fokus pada pengalaman yang ringan, responsif, dan mudah diperbarui.
-
----
-
-### 🎯 Hasil yang Dituju
-- [ ] Halaman utama & profil
-- [ ] Studi kasus & kontak
-- [x] Website responsif di seluruh perangkat
-
-### 🛠️ Alat Kerja Terhubung
-- **Figma**: Desain UI & prototipe
-- **GitHub**: Repositori & review perubahan
-- **Vercel**: Preview & publikasi website
-`,
-  },
+  createDefaultWebProjectDoc(),
   createDefaultMobileProjectDoc(),
   createDefaultDesignProjectDoc(),
   {

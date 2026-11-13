@@ -10,7 +10,15 @@ import {
   EvaluationData
 } from './types';
 import { translations } from './utils/i18n';
-import { INITIAL_DOCS, EVALUATION_DOC_ID, DEFAULT_EVALUATION_DATA } from './utils/seedData';
+import {
+  INITIAL_DOCS,
+  EVALUATION_DOC_ID,
+  DEFAULT_EVALUATION_DATA,
+  WEB_PROJECT_DOC_ID,
+  MOBILE_PROJECT_DOC_ID,
+  DESIGN_PROJECT_DOC_ID,
+  formatProjectDeadline,
+} from './utils/seedData';
 import { 
   loadStoredDocs, 
   saveStoredDocs, 
@@ -774,6 +782,25 @@ export default function App() {
     );
   };
 
+  const STATUS_TO_LABEL: Record<DocItem['status'], string> = {
+    not_started: 'Belum mulai',
+    in_progress: 'Dikerjakan',
+    completed: 'Selesai',
+    archived: 'Diarsipkan',
+  };
+
+  const PRIORITY_TO_LABEL_ID: Record<DocItem['priority'], 'Tinggi' | 'Sedang' | 'Rendah'> = {
+    high: 'Tinggi',
+    medium: 'Sedang',
+    low: 'Rendah',
+  };
+
+  const FAVORITE_PROJECT_IDS = new Set([
+    WEB_PROJECT_DOC_ID,
+    MOBILE_PROJECT_DOC_ID,
+    DESIGN_PROJECT_DOC_ID,
+  ]);
+
   const handleUpdateDocById = (id: string, updated: Partial<DocItem>) => {
     const current = docs.find((d) => d.id === id);
     if (!current) return;
@@ -801,9 +828,20 @@ export default function App() {
       ? `Mengubah status jadi ${updated.status === 'completed' ? 'Selesai' : updated.status === 'in_progress' ? 'Sedang Dikerjakan' : updated.status === 'archived' ? 'Arsip' : 'Belum Mulai'}`
       : 'Memperbarui dokumen';
 
+    let syncedProjectData = current.projectData;
+    if (current.projectData) {
+      syncedProjectData = {
+        ...current.projectData,
+        ...(updated.status ? { statusLabel: STATUS_TO_LABEL[updated.status] || current.projectData.statusLabel } : {}),
+        ...(updated.priority ? { priorityLabel: PRIORITY_TO_LABEL_ID[updated.priority] || current.projectData.priorityLabel } : {}),
+        ...(updated.deadline ? { deadlineLabel: formatProjectDeadline(updated.deadline, current.projectData.deadlineLabel) } : {}),
+      };
+    }
+
     const merged: DocItem = {
       ...current,
       ...updated,
+      ...(syncedProjectData ? { projectData: syncedProjectData } : {}),
       lastModifiedBy: {
         userId: userProfile.userId,
         name: userProfile.name,
@@ -814,6 +852,11 @@ export default function App() {
       statusHistory: newHistory,
       updatedAt: now,
     };
+
+    if (FAVORITE_PROJECT_IDS.has(id)) {
+      handleSaveFavoriteProjectDoc(merged);
+      return;
+    }
 
     updateDocs(
       (prev) => prev.map((d) => (d.id === id ? merged : d)),
@@ -848,57 +891,149 @@ export default function App() {
       },
     };
 
+    // Bi-directional sync back to linked favorite project docs (title & status)
+    const syncedLinkedDocs: DocItem[] = [];
+    for (const ep of updatedEval.projects) {
+      if (ep.linkedDocId && FAVORITE_PROJECT_IDS.has(ep.linkedDocId)) {
+        const target = docs.find((d) => d.id === ep.linkedDocId);
+        if (target && (target.status !== ep.status || target.title !== ep.name)) {
+          const updatedTarget: DocItem = {
+            ...target,
+            title: ep.name,
+            status: ep.status,
+            updatedAt: now,
+            projectData: target.projectData
+              ? { ...target.projectData, statusLabel: STATUS_TO_LABEL[ep.status] }
+              : target.projectData,
+            lastModifiedBy: {
+              userId: userProfile.userId,
+              name: userProfile.name,
+              color: userProfile.color,
+              timestamp: now,
+              action: `Sinkronisasi dari Evaluasi: ${ep.name}`,
+            },
+          };
+          syncedLinkedDocs.push(updatedTarget);
+        }
+      }
+    }
+
     updateDocs(
       (prev) => {
-        const hasExisting = prev.some((d) => d.id === EVALUATION_DOC_ID);
-        return hasExisting
+        let next = prev.some((d) => d.id === EVALUATION_DOC_ID)
           ? prev.map((d) => (d.id === EVALUATION_DOC_ID ? mergedEvalDoc : d))
           : [...prev, mergedEvalDoc];
+        for (const ld of syncedLinkedDocs) {
+          next = next.map((d) => (d.id === ld.id ? ld : d));
+        }
+        return next;
       },
       EVALUATION_DOC_ID,
       undefined,
       { type: 'upsert', doc: mergedEvalDoc },
       true
     );
+
+    syncedLinkedDocs.forEach((ld) => {
+      collabManagerRef.current?.sendDocUpsert(ld);
+      saveDocToFirestore(ld).catch(() => {});
+      fetch('/api/docs/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mutation: { type: 'upsert', doc: ld } }),
+      }).catch(() => {});
+    });
   };
 
-  const handleSaveMobileProjectDoc = (updatedDoc: DocItem) => {
+  const handleSaveFavoriteProjectDoc = (updatedDoc: DocItem) => {
     const now = Date.now();
-    const projectStats = updatedDoc.projectData
+    const existingDoc = docs.find((d) => d.id === updatedDoc.id);
+
+    let nextHistory = updatedDoc.statusHistory
+      ? [...updatedDoc.statusHistory]
+      : existingDoc?.statusHistory
+      ? [...existingDoc.statusHistory]
+      : [];
+
+    if (existingDoc && existingDoc.status !== updatedDoc.status) {
+      const changeLog: StatusChangeLog = {
+        id: `log_${now}_${Math.random().toString(36).substring(2, 6)}`,
+        fromStatus: existingDoc.status,
+        toStatus: updatedDoc.status,
+        changedBy: {
+          userId: userProfile.userId,
+          name: userProfile.name,
+          color: userProfile.color,
+        },
+        timestamp: now,
+      };
+      nextHistory = [changeLog, ...nextHistory].slice(0, 50);
+    }
+
+    const finalProjectDoc: DocItem = {
+      ...updatedDoc,
+      statusHistory: nextHistory,
+    };
+
+    const projectStats = finalProjectDoc.projectData
       ? {
           completedTasks:
-            updatedDoc.projectData.tasks.filter((t) => t.completed).length +
-            updatedDoc.projectData.baseCompletedTasks,
+            finalProjectDoc.projectData.tasks.filter((t) => t.completed).length +
+            finalProjectDoc.projectData.baseCompletedTasks,
           totalTasks:
-            updatedDoc.projectData.tasks.length + updatedDoc.projectData.baseTotalTasks,
-          status: (updatedDoc.status === 'archived' ? 'in_progress' : updatedDoc.status) as
-            | 'not_started'
-            | 'in_progress'
-            | 'completed',
+            finalProjectDoc.projectData.tasks.length +
+            finalProjectDoc.projectData.baseTotalTasks,
+          status: (finalProjectDoc.status === 'archived'
+            ? 'in_progress'
+            : finalProjectDoc.status) as 'not_started' | 'in_progress' | 'completed',
         }
       : null;
 
     const existingEvalDoc = docs.find((d) => d.id === EVALUATION_DOC_ID);
     const currentEvalData = existingEvalDoc?.evaluationData || DEFAULT_EVALUATION_DATA;
+
+    let renamedFrom: string | null = null;
+    const updatedEvalProjects = projectStats
+      ? currentEvalData.projects.map((p) => {
+          const matchesDoc =
+            p.linkedDocId === finalProjectDoc.id ||
+            (finalProjectDoc.id === WEB_PROJECT_DOC_ID &&
+              (p.name.toLowerCase().includes('website') || p.id === 'eval-p-1')) ||
+            (finalProjectDoc.id === MOBILE_PROJECT_DOC_ID &&
+              (p.name.toLowerCase().includes('habit') || p.id === 'eval-p-2')) ||
+            (finalProjectDoc.id === DESIGN_PROJECT_DOC_ID &&
+              (p.name.toLowerCase().includes('kopi sore') || p.id === 'eval-p-3'));
+
+          if (matchesDoc) {
+            if (p.name !== finalProjectDoc.title) {
+              renamedFrom = p.name;
+            }
+            return {
+              ...p,
+              name: finalProjectDoc.title,
+              linkedDocId: finalProjectDoc.id,
+              completedTasks: projectStats.completedTasks,
+              totalTasks: projectStats.totalTasks,
+              status: projectStats.status,
+            };
+          }
+          return p;
+        })
+      : currentEvalData.projects;
+
+    const updatedEvalIssues = renamedFrom
+      ? currentEvalData.issues.map((iss) =>
+          iss.projectName === renamedFrom
+            ? { ...iss, projectName: finalProjectDoc.title }
+            : iss
+        )
+      : currentEvalData.issues;
+
     const syncedEvalData: EvaluationData | null = projectStats
       ? {
           ...currentEvalData,
-          projects: currentEvalData.projects.map((p) => {
-            const matchesDoc =
-              p.linkedDocId === updatedDoc.id ||
-              (updatedDoc.id === 'doc-habit-tracker' && p.name.toLowerCase().includes('habit')) ||
-              (updatedDoc.id === 'doc-kopi-sore' && p.name.toLowerCase().includes('kopi sore'));
-            if (matchesDoc) {
-              return {
-                ...p,
-                linkedDocId: updatedDoc.id,
-                completedTasks: projectStats.completedTasks,
-                totalTasks: projectStats.totalTasks,
-                status: projectStats.status,
-              };
-            }
-            return p;
-          }),
+          projects: updatedEvalProjects,
+          issues: updatedEvalIssues,
         }
       : null;
 
@@ -915,16 +1050,16 @@ export default function App() {
           createdAt: existingEvalDoc?.createdAt || now,
           updatedAt: now,
           evaluationData: syncedEvalData,
-          lastModifiedBy: updatedDoc.lastModifiedBy,
+          lastModifiedBy: finalProjectDoc.lastModifiedBy,
         }
       : null;
 
     updateDocs(
       (prev) => {
-        const hasProject = prev.some((d) => d.id === updatedDoc.id);
+        const hasProject = prev.some((d) => d.id === finalProjectDoc.id);
         let next = hasProject
-          ? prev.map((d) => (d.id === updatedDoc.id ? updatedDoc : d))
-          : [updatedDoc, ...prev];
+          ? prev.map((d) => (d.id === finalProjectDoc.id ? finalProjectDoc : d))
+          : [finalProjectDoc, ...prev];
         if (mergedEvalDoc) {
           const hasEval = next.some((d) => d.id === EVALUATION_DOC_ID);
           next = hasEval
@@ -933,9 +1068,9 @@ export default function App() {
         }
         return next;
       },
-      updatedDoc.id,
-      updatedDoc.content,
-      { type: 'upsert', doc: updatedDoc },
+      finalProjectDoc.id,
+      finalProjectDoc.content,
+      { type: 'upsert', doc: finalProjectDoc },
       true
     );
 
@@ -1383,10 +1518,9 @@ export default function App() {
               collaborators={collaborators}
               userProfile={userProfile}
               onSelectDoc={handleSelectDoc}
-              onUpdateDoc={handleUpdateDocById}
+              onSaveWebDoc={handleSaveFavoriteProjectDoc}
               onCreateDoc={handleCreateDoc}
               onSelectView={setActiveView}
-              onToggleFavorite={handleToggleFavorite}
             />
           )}
 
@@ -1395,7 +1529,7 @@ export default function App() {
               docs={visibleDocs}
               userProfile={userProfile}
               onSelectDoc={handleSelectDoc}
-              onSaveMobileDoc={handleSaveMobileProjectDoc}
+              onSaveMobileDoc={handleSaveFavoriteProjectDoc}
               onCreateDoc={handleCreateDoc}
             />
           )}
@@ -1405,7 +1539,7 @@ export default function App() {
               docs={visibleDocs}
               userProfile={userProfile}
               onSelectDoc={handleSelectDoc}
-              onSaveDesignDoc={handleSaveMobileProjectDoc}
+              onSaveDesignDoc={handleSaveFavoriteProjectDoc}
               onCreateDoc={handleCreateDoc}
             />
           )}

@@ -651,11 +651,23 @@ export const EvaluasiPage: React.FC<EvaluasiPageProps> = ({
                       <div className="col-span-3 pr-2 flex items-center gap-2">
                         <button
                           onClick={() => {
-                            if (project.name.toLowerCase().includes('website') && onSelectView) {
+                            if (
+                              (project.linkedDocId === 'doc-portfolio-web' ||
+                                project.name.toLowerCase().includes('website')) &&
+                              onSelectView
+                            ) {
                               onSelectView('project_web');
-                            } else if (project.name.toLowerCase().includes('habit') && onSelectView) {
+                            } else if (
+                              (project.linkedDocId === 'doc-habit-tracker' ||
+                                project.name.toLowerCase().includes('habit')) &&
+                              onSelectView
+                            ) {
                               onSelectView('project_mobile');
-                            } else if (project.name.toLowerCase().includes('kopi sore') && onSelectView) {
+                            } else if (
+                              (project.linkedDocId === 'doc-kopi-sore' ||
+                                project.name.toLowerCase().includes('kopi sore')) &&
+                              onSelectView
+                            ) {
                               onSelectView('project_design');
                             } else if (project.linkedDocId && onSelectDoc) {
                               onSelectDoc(project.linkedDocId);

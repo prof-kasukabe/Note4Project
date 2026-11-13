@@ -78,7 +78,55 @@ export interface ProjectToolLink {
   url: string;
 }
 
+export interface ProjectGoalItem {
+  id: string;
+  text: string;
+  done?: boolean;
+}
+
+export interface ProjectDocLink {
+  id: string;
+  title: string;
+  source: string;
+  updatedLabel: string;
+  category: string;
+  description?: string;
+  linkedDocId?: string;
+}
+
+export interface ProjectDesignSwatch {
+  id: string;
+  name: string;
+  hex: string;
+  role: string;
+}
+
+export interface ProjectMobileFeature {
+  id: string;
+  name: string;
+  schedule: string;
+  streak: number;
+  doneToday: boolean;
+  reminderOn: boolean;
+}
+
+export interface ProjectWebSection {
+  id: string;
+  title: string;
+  subtitle: string;
+  tag?: string;
+}
+
 export interface ProjectDetailData {
+  categoryLabel?: string;
+  tagline?: string;
+  aboutText?: string;
+  focusObjective?: string;
+  ownerName?: string;
+  collaboratorsText?: string;
+  visibilityLabel?: string;
+  deadlineLabel?: string;
+  priorityLabel?: 'Tinggi' | 'Sedang' | 'Rendah';
   statusLabel: string;
   teamNote: string;
   baseCompletedTasks: number;
@@ -86,6 +134,11 @@ export interface ProjectDetailData {
   tasks: ProjectTask[];
   discussions: ProjectDiscussion[];
   toolLinks: ProjectToolLink[];
+  goals?: ProjectGoalItem[];
+  projectDocs?: ProjectDocLink[];
+  designPalette?: ProjectDesignSwatch[];
+  mobileFeatures?: ProjectMobileFeature[];
+  webSections?: ProjectWebSection[];
 }
 
 export interface DocItem {

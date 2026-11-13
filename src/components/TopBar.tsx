@@ -16,6 +16,11 @@ import {
 } from 'lucide-react';
 import { DocItem, ActiveView, ThemeMode, Language, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
+import {
+  WEB_PROJECT_DOC_ID,
+  MOBILE_PROJECT_DOC_ID,
+  DESIGN_PROJECT_DOC_ID,
+} from '../utils/seedData';
 
 interface TopBarProps {
   activeDoc: DocItem | null;
@@ -116,11 +121,11 @@ export const TopBar: React.FC<TopBarProps> = ({
       case 'analytics':
         return 'Analisis Produktivitas';
       case 'project_web':
-        return 'Website project';
+        return docs.find((d) => d.id === WEB_PROJECT_DOC_ID)?.title || 'Website project';
       case 'project_mobile':
-        return 'Aplikasi habit tracker';
+        return docs.find((d) => d.id === MOBILE_PROJECT_DOC_ID)?.title || 'Aplikasi habit tracker';
       case 'project_design':
-        return 'Identitas Kopi Sore';
+        return docs.find((d) => d.id === DESIGN_PROJECT_DOC_ID)?.title || 'Identitas Kopi Sore';
       case 'evaluasi':
         return 'Evaluasi';
       case 'editor':

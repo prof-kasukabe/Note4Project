@@ -30,6 +30,11 @@ import {
 } from 'lucide-react';
 import { DocItem, ActiveView, Language, SyncState, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
+import {
+  WEB_PROJECT_DOC_ID,
+  MOBILE_PROJECT_DOC_ID,
+  DESIGN_PROJECT_DOC_ID,
+} from '../utils/seedData';
 
 interface SidebarProps {
   docs: DocItem[];
@@ -426,41 +431,71 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </span>
 
             <div className="flex flex-col gap-[3px]">
-              <button
-                onClick={() => handleViewClick('project_web')}
-                className={`flex items-center gap-2.5 px-2.5 h-9 rounded-[5px] transition-colors text-left ${
-                  activeView === 'project_web'
-                    ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
-                    : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
-                }`}
-              >
-                <Globe size={16} className={activeView === 'project_web' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
-                <span className="text-[13px] truncate">Platform Web</span>
-              </button>
+              {(() => {
+                const webDoc = docs.find((d) => d.id === WEB_PROJECT_DOC_ID);
+                const mobileDoc = docs.find((d) => d.id === MOBILE_PROJECT_DOC_ID);
+                const designDoc = docs.find((d) => d.id === DESIGN_PROJECT_DOC_ID);
+                return (
+                  <>
+                    <button
+                      onClick={() => handleViewClick('project_web')}
+                      className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-[5px] transition-colors text-left ${
+                        activeView === 'project_web'
+                          ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                          : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                      }`}
+                    >
+                      <Globe size={16} className={activeView === 'project_web' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
+                      <div className="flex flex-col min-w-0 leading-tight">
+                        <span className="text-[12.5px] truncate">Platform Web</span>
+                        {webDoc?.title && (
+                          <span className="text-[10px] font-normal text-[#A1A29B] truncate">
+                            {webDoc.title}
+                          </span>
+                        )}
+                      </div>
+                    </button>
 
-              <button
-                onClick={() => handleViewClick('project_mobile')}
-                className={`flex items-center gap-2.5 px-2.5 h-9 rounded-[5px] transition-colors text-left ${
-                  activeView === 'project_mobile'
-                    ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
-                    : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
-                }`}
-              >
-                <Smartphone size={16} className={activeView === 'project_mobile' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
-                <span className="text-[13px] truncate">Aplikasi Mobile</span>
-              </button>
+                    <button
+                      onClick={() => handleViewClick('project_mobile')}
+                      className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-[5px] transition-colors text-left ${
+                        activeView === 'project_mobile'
+                          ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                          : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                      }`}
+                    >
+                      <Smartphone size={16} className={activeView === 'project_mobile' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
+                      <div className="flex flex-col min-w-0 leading-tight">
+                        <span className="text-[12.5px] truncate">Aplikasi Mobile</span>
+                        {mobileDoc?.title && (
+                          <span className="text-[10px] font-normal text-[#A1A29B] truncate">
+                            {mobileDoc.title}
+                          </span>
+                        )}
+                      </div>
+                    </button>
 
-              <button
-                onClick={() => handleViewClick('project_design')}
-                className={`flex items-center gap-2.5 px-2.5 h-9 rounded-[5px] transition-colors text-left ${
-                  activeView === 'project_design'
-                    ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
-                    : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
-                }`}
-              >
-                <Palette size={16} className={activeView === 'project_design' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
-                <span className="text-[13px] truncate">Desain Sistem</span>
-              </button>
+                    <button
+                      onClick={() => handleViewClick('project_design')}
+                      className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-[5px] transition-colors text-left ${
+                        activeView === 'project_design'
+                          ? 'bg-[#E9EBE3] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                          : 'text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+                      }`}
+                    >
+                      <Palette size={16} className={activeView === 'project_design' ? 'text-[#282925] dark:text-[#EDEDE8] shrink-0' : 'text-[#777973] shrink-0'} />
+                      <div className="flex flex-col min-w-0 leading-tight">
+                        <span className="text-[12.5px] truncate">Desain Sistem</span>
+                        {designDoc?.title && (
+                          <span className="text-[10px] font-normal text-[#A1A29B] truncate">
+                            {designDoc.title}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  </>
+                );
+              })()}
 
               {favoriteDocs.map((fav) => (
                 <button
