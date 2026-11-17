@@ -26,7 +26,8 @@ import {
   ArrowRight,
   Star,
   Lock,
-  ChartNoAxesCombined
+  ChartNoAxesCombined,
+  CalendarCheck2
 } from 'lucide-react';
 import { DocItem, ActiveView, Language, SyncState, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
@@ -322,6 +323,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex items-center gap-2.5">
                 <ChartNoAxesCombined size={15} className={activeView === 'evaluasi' ? 'text-[#282925] dark:text-[#EDEDE8]' : 'text-[#777973]'} />
                 <span className="text-[13px]">Evaluasi</span>
+              </div>
+            </button>
+
+            {/* Produktif (Figma: Menu produktif aktif bg #EAECE5) */}
+            <button
+              onClick={() => handleViewClick('produktif')}
+              className={`flex items-center justify-between px-2.5 h-9 rounded transition-colors ${
+                activeView === 'produktif'
+                  ? 'bg-[#EAECE5] dark:bg-[#252822] text-[#282925] dark:text-[#EDEDE8] font-semibold'
+                  : 'bg-[#F8F8F6] dark:bg-[#181816] text-[#777973] hover:bg-[#F2F2EE] dark:hover:bg-[#232320] hover:text-[#282925]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <CalendarCheck2 size={15} className={activeView === 'produktif' ? 'text-[#282925] dark:text-[#EDEDE8]' : 'text-[#777973]'} />
+                <span className="text-[13px]">Produktif</span>
               </div>
             </button>
           </nav>

@@ -12,7 +12,7 @@ import {
   Trash2,
   Tag as TagIcon
 } from 'lucide-react';
-import { DocItem, DocStatus, DocPriority, Language } from '../types';
+import { DocItem, DocStatus, DocPriority, Language, CalendarDayLabel, ProductivityActivity } from '../types';
 import { translations } from '../utils/i18n';
 import { formatTimeAgo } from '../utils/formatTime';
 
@@ -20,6 +20,9 @@ interface DatabaseViewProps {
   docs: DocItem[];
   currentMode: 'table' | 'board' | 'calendar';
   lang: Language;
+  dayLabels?: CalendarDayLabel[];
+  productivityActivities?: ProductivityActivity[];
+  onOpenProductivity?: () => void;
   onSelectDoc: (id: string) => void;
   onUpdateDoc: (id: string, updated: Partial<DocItem>) => void;
   onCreateDoc: (date?: string) => void;
@@ -37,6 +40,9 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
   docs,
   currentMode,
   lang,
+  dayLabels = [],
+  productivityActivities = [],
+  onOpenProductivity,
   onSelectDoc,
   onUpdateDoc,
   onCreateDoc,
@@ -102,6 +108,20 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
       const key = doc.deadline.slice(0, 10);
       if (!docsByDeadline[key]) docsByDeadline[key] = [];
       docsByDeadline[key].push(doc);
+    }
+  });
+
+  // Map Mini Calendar work labels & productivity activities by YYYY-MM-DD
+  const labelsByDate: Record<string, CalendarDayLabel[]> = {};
+  dayLabels.forEach((lbl) => {
+    if (!labelsByDate[lbl.date]) labelsByDate[lbl.date] = [];
+    labelsByDate[lbl.date].push(lbl);
+  });
+
+  const prodDoneByDate: Record<string, number> = {};
+  productivityActivities.forEach((act) => {
+    if (act.status === 'completed') {
+      prodDoneByDate[act.date] = (prodDoneByDate[act.date] || 0) + 1;
     }
   });
 
@@ -509,6 +529,8 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                 const dayNum = i + 1;
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
                 const dayDocs = docsByDeadline[dateStr] || [];
+                const dayWorkLabels = labelsByDate[dateStr] || [];
+                const doneActCount = prodDoneByDate[dateStr] || 0;
                 const isToday =
                   new Date().toDateString() === new Date(year, month, dayNum).toDateString();
 
@@ -531,16 +553,43 @@ export const DatabaseView: React.FC<DatabaseViewProps> = ({
                         {dayNum}
                       </span>
 
-                      <button
-                        title="Tambah tugas di tanggal ini"
-                        className="opacity-0 group-hover:opacity-100 p-0.5 text-[#777973] hover:text-[#282925] hidden sm:block"
-                      >
-                        <Plus size={12} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {doneActCount > 0 && (
+                          <span
+                            title={`${doneActCount} aktivitas produktif selesai`}
+                            className="text-[9px] font-medium px-1 rounded bg-[#EAF0EB] dark:bg-[#1D2B22] text-[#567561] dark:text-[#8FB49C] tabular-nums"
+                          >
+                            ✓{doneActCount}
+                          </span>
+                        )}
+                        <button
+                          title="Tambah tugas di tanggal ini"
+                          className="opacity-0 group-hover:opacity-100 p-0.5 text-[#777973] hover:text-[#282925] hidden sm:block"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Events / tasks for day */}
+                    {/* Events / tasks & synced work labels for day */}
                     <div className="space-y-1 overflow-y-auto max-h-14 sm:max-h-20 mt-1">
+                      {dayWorkLabels.map((lbl) => (
+                        <div
+                          key={lbl.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onOpenProductivity) onOpenProductivity();
+                          }}
+                          title={`Label Produktif: ${lbl.label}`}
+                          className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium truncate flex items-center gap-1 bg-[#F8F8F6] dark:bg-[#232320] border border-[#EAEAE5] dark:border-[#2B2B28] text-[#282925] dark:text-[#EDEDE8]"
+                        >
+                          <span
+                            style={{ backgroundColor: lbl.colorHex }}
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                          />
+                          <span className="truncate">{lbl.label}</span>
+                        </div>
+                      ))}
                       {dayDocs.map((d) => (
                         <div
                           key={d.id}

@@ -7,17 +7,22 @@ import {
   SyncState, 
   Collaborator,
   StatusChangeLog,
-  EvaluationData
+  EvaluationData,
+  ProductivityData
 } from './types';
 import { translations } from './utils/i18n';
 import {
   INITIAL_DOCS,
   EVALUATION_DOC_ID,
   DEFAULT_EVALUATION_DATA,
+  PRODUCTIVITY_DOC_ID,
+  DEFAULT_PRODUCTIVITY_DATA,
+  createDefaultProductivityDoc,
   WEB_PROJECT_DOC_ID,
   MOBILE_PROJECT_DOC_ID,
   DESIGN_PROJECT_DOC_ID,
   formatProjectDeadline,
+  buildProjectMarkdownContent,
 } from './utils/seedData';
 import { 
   loadStoredDocs, 
@@ -55,12 +60,14 @@ import { ProjectWebDetail } from './components/ProjectWebDetail';
 import { ProjectMobileDetail } from './components/ProjectMobileDetail';
 import { ProjectDesignDetail } from './components/ProjectDesignDetail';
 import { EvaluasiPage } from './components/EvaluasiPage';
+import { ProduktifPage, ProductivityTaskSyncHint } from './components/ProduktifPage';
 import { 
   FileText, 
   Table, 
   Kanban, 
   Calendar as CalendarIcon, 
   ChartNoAxesCombined,
+  CalendarCheck2,
   Home
 } from 'lucide-react';
 
@@ -80,12 +87,45 @@ export default function App() {
   const migrateDocs = (list: DocItem[]): DocItem[] => {
     const seen = new Set<string>();
     const normalized: DocItem[] = [];
+    const defaultActById = new Map(
+      DEFAULT_PRODUCTIVITY_DATA.activities.map((a) => [a.id, a])
+    );
+
     for (const item of list) {
       const id = item.id === '__workspace_evaluasi__' ? EVALUATION_DOC_ID : item.id;
       if (!seen.has(id)) {
         seen.add(id);
-        normalized.push(id === item.id ? item : { ...item, id });
+        let nextItem = id === item.id ? item : { ...item, id };
+        if (id === PRODUCTIVITY_DOC_ID && nextItem.productivityData) {
+          let changed = false;
+          const patchedActivities = nextItem.productivityData.activities.map((act) => {
+            const def = defaultActById.get(act.id);
+            if (!def) return act;
+            if (act.comments === undefined && def.comments) {
+              changed = true;
+              return {
+                ...act,
+                comments: def.comments,
+                ...(act.notes === undefined && def.notes ? { notes: def.notes } : {}),
+              };
+            }
+            return act;
+          });
+          if (changed) {
+            nextItem = {
+              ...nextItem,
+              productivityData: {
+                ...nextItem.productivityData,
+                activities: patchedActivities,
+              },
+            };
+          }
+        }
+        normalized.push(nextItem);
       }
+    }
+    if (!seen.has(PRODUCTIVITY_DOC_ID)) {
+      normalized.push(createDefaultProductivityDoc());
     }
     return normalized;
   };
@@ -523,15 +563,21 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Visible workspace documents (excluding internal workspace evaluation store)
+  // Visible workspace documents (excluding internal workspace evaluation & productivity stores)
   const visibleDocs = useMemo(() => {
-    return docs.filter((d) => d.id !== EVALUATION_DOC_ID);
+    return docs.filter((d) => d.id !== EVALUATION_DOC_ID && d.id !== PRODUCTIVITY_DOC_ID);
   }, [docs]);
 
   // Evaluation workspace data synced via Firestore & Express backend
   const evaluationData = useMemo(() => {
     const evalDoc = docs.find((d) => d.id === EVALUATION_DOC_ID);
     return evalDoc?.evaluationData || DEFAULT_EVALUATION_DATA;
+  }, [docs]);
+
+  // Productivity & Mini Calendar data synced via Firestore & Express backend
+  const productivityData = useMemo(() => {
+    const prodDoc = docs.find((d) => d.id === PRODUCTIVITY_DOC_ID);
+    return prodDoc?.productivityData || DEFAULT_PRODUCTIVITY_DATA;
   }, [docs]);
 
   // Current active doc
@@ -1054,6 +1100,70 @@ export default function App() {
         }
       : null;
 
+    const existingProdDoc = docs.find((d) => d.id === PRODUCTIVITY_DOC_ID);
+    const currentProdData = existingProdDoc?.productivityData || DEFAULT_PRODUCTIVITY_DATA;
+    let prodChanged = false;
+    const taskById = new Map((finalProjectDoc.projectData?.tasks || []).map((t) => [t.id, t]));
+    const taskByTitle = new Map(
+      (finalProjectDoc.projectData?.tasks || []).map((t) => [t.title.toLowerCase(), t])
+    );
+
+    const syncedActivities = currentProdData.activities.map((act) => {
+      if (act.linkedDocId !== finalProjectDoc.id) return act;
+      let nextAct = act;
+      if (act.projectName !== finalProjectDoc.title) {
+        nextAct = { ...nextAct, projectName: finalProjectDoc.title };
+        prodChanged = true;
+      }
+      const matchedTask =
+        (act.linkedTaskId ? taskById.get(act.linkedTaskId) : undefined) ||
+        taskByTitle.get(act.title.toLowerCase());
+      if (matchedTask) {
+        const expectedStatus = matchedTask.completed ? 'completed' : act.status === 'completed' ? 'in_progress' : act.status;
+        if (expectedStatus !== nextAct.status) {
+          nextAct = {
+            ...nextAct,
+            status: expectedStatus,
+            durationMinutes:
+              expectedStatus === 'completed' && nextAct.durationMinutes === 0 ? 30 : nextAct.durationMinutes,
+            updatedAt: now,
+          };
+          prodChanged = true;
+        }
+      }
+      return nextAct;
+    });
+
+    const syncedDayLabels = currentProdData.dayLabels.map((lbl) => {
+      if (lbl.linkedDocId === finalProjectDoc.id && lbl.projectName !== finalProjectDoc.title) {
+        prodChanged = true;
+        return { ...lbl, projectName: finalProjectDoc.title, updatedAt: now };
+      }
+      return lbl;
+    });
+
+    const mergedProdDoc: DocItem | null = prodChanged
+      ? {
+          id: PRODUCTIVITY_DOC_ID,
+          title: 'Produktivitas Workspace',
+          icon: '⚡',
+          parentId: null,
+          content: '',
+          tags: ['Produktif'],
+          status: 'in_progress',
+          priority: 'medium',
+          createdAt: existingProdDoc?.createdAt || now,
+          updatedAt: now,
+          productivityData: {
+            ...currentProdData,
+            activities: syncedActivities,
+            dayLabels: syncedDayLabels,
+            updatedAt: now,
+          },
+          lastModifiedBy: finalProjectDoc.lastModifiedBy,
+        }
+      : null;
+
     updateDocs(
       (prev) => {
         const hasProject = prev.some((d) => d.id === finalProjectDoc.id);
@@ -1065,6 +1175,12 @@ export default function App() {
           next = hasEval
             ? next.map((d) => (d.id === EVALUATION_DOC_ID ? mergedEvalDoc : d))
             : [...next, mergedEvalDoc];
+        }
+        if (mergedProdDoc) {
+          const hasProd = next.some((d) => d.id === PRODUCTIVITY_DOC_ID);
+          next = hasProd
+            ? next.map((d) => (d.id === PRODUCTIVITY_DOC_ID ? mergedProdDoc : d))
+            : [...next, mergedProdDoc];
         }
         return next;
       },
@@ -1083,6 +1199,163 @@ export default function App() {
         body: JSON.stringify({ mutation: { type: 'upsert', doc: mergedEvalDoc } }),
       }).catch(() => {});
     }
+
+    if (mergedProdDoc) {
+      collabManagerRef.current?.sendDocUpsert(mergedProdDoc);
+      saveDocToFirestore(mergedProdDoc).catch(() => {});
+      fetch('/api/docs/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mutation: { type: 'upsert', doc: mergedProdDoc } }),
+      }).catch(() => {});
+    }
+  };
+
+  const handleUpdateProductivity = (
+    updatedProd: ProductivityData,
+    actionLabel?: string,
+    taskSync?: ProductivityTaskSyncHint
+  ) => {
+    const now = Date.now();
+    const existingProd = docs.find((d) => d.id === PRODUCTIVITY_DOC_ID);
+    const mergedProdDoc: DocItem = {
+      id: PRODUCTIVITY_DOC_ID,
+      title: 'Produktivitas Workspace',
+      icon: '⚡',
+      parentId: null,
+      content: '',
+      tags: ['Produktif'],
+      status: 'in_progress',
+      priority: 'medium',
+      createdAt: existingProd?.createdAt || now,
+      updatedAt: now,
+      productivityData: updatedProd,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: actionLabel || 'Memperbarui data produktivitas',
+      },
+    };
+
+    let syncedTargetDoc: DocItem | null = null;
+    let syncedEvalDoc: DocItem | null = null;
+
+    if (taskSync) {
+      const target = docs.find((d) => d.id === taskSync.docId);
+      if (target && target.projectData) {
+        const pd = target.projectData;
+        const matchedIdx = pd.tasks.findIndex(
+          (t) =>
+            (taskSync.taskId && t.id === taskSync.taskId) ||
+            t.title.toLowerCase() === taskSync.taskTitle.toLowerCase()
+        );
+
+        let nextTasks = [...pd.tasks];
+        let changed = false;
+        if (matchedIdx >= 0) {
+          if (nextTasks[matchedIdx].completed !== taskSync.completed) {
+            nextTasks[matchedIdx] = {
+              ...nextTasks[matchedIdx],
+              completed: taskSync.completed,
+            };
+            changed = true;
+          }
+        } else if (taskSync.createIfMissing) {
+          nextTasks = [
+            {
+              id: taskSync.taskId || `task-prod-${now}`,
+              title: taskSync.taskTitle,
+              assignee: taskSync.assignee || userProfile.name,
+              priority: 'Sedang',
+              dueDate: 'Hari ini',
+              completed: taskSync.completed,
+            },
+            ...nextTasks,
+          ];
+          changed = true;
+        }
+
+        if (changed) {
+          const nextPd = { ...pd, tasks: nextTasks };
+          syncedTargetDoc = {
+            ...target,
+            updatedAt: now,
+            projectData: nextPd,
+            content: buildProjectMarkdownContent(target.title, target.icon, target.deadline, nextPd),
+            lastModifiedBy: {
+              userId: userProfile.userId,
+              name: userProfile.name,
+              color: userProfile.color,
+              timestamp: now,
+              action: actionLabel || `Sinkron dari Produktif: ${taskSync.taskTitle}`,
+            },
+          };
+
+          if (FAVORITE_PROJECT_IDS.has(target.id)) {
+            const existingEval = docs.find((d) => d.id === EVALUATION_DOC_ID);
+            const curEval = existingEval?.evaluationData || DEFAULT_EVALUATION_DATA;
+            const completedTotal = nextTasks.filter((t) => t.completed).length + pd.baseCompletedTasks;
+            const taskTotal = nextTasks.length + pd.baseTotalTasks;
+            syncedEvalDoc = {
+              id: EVALUATION_DOC_ID,
+              title: 'Evaluasi Workspace',
+              icon: '📊',
+              parentId: null,
+              content: '',
+              tags: ['Evaluasi'],
+              status: 'in_progress',
+              priority: 'medium',
+              createdAt: existingEval?.createdAt || now,
+              updatedAt: now,
+              evaluationData: {
+                ...curEval,
+                projects: curEval.projects.map((p) =>
+                  p.linkedDocId === target.id
+                    ? { ...p, completedTasks: completedTotal, totalTasks: taskTotal }
+                    : p
+                ),
+              },
+              lastModifiedBy: mergedProdDoc.lastModifiedBy,
+            };
+          }
+        }
+      }
+    }
+
+    updateDocs(
+      (prev) => {
+        let next = prev.some((d) => d.id === PRODUCTIVITY_DOC_ID)
+          ? prev.map((d) => (d.id === PRODUCTIVITY_DOC_ID ? mergedProdDoc : d))
+          : [...prev, mergedProdDoc];
+        if (syncedTargetDoc) {
+          next = next.map((d) => (d.id === syncedTargetDoc!.id ? syncedTargetDoc! : d));
+        }
+        if (syncedEvalDoc) {
+          const hasEval = next.some((d) => d.id === EVALUATION_DOC_ID);
+          next = hasEval
+            ? next.map((d) => (d.id === EVALUATION_DOC_ID ? syncedEvalDoc! : d))
+            : [...next, syncedEvalDoc];
+        }
+        return next;
+      },
+      PRODUCTIVITY_DOC_ID,
+      undefined,
+      { type: 'upsert', doc: mergedProdDoc },
+      true
+    );
+
+    [syncedTargetDoc, syncedEvalDoc].forEach((extraDoc) => {
+      if (!extraDoc) return;
+      collabManagerRef.current?.sendDocUpsert(extraDoc);
+      saveDocToFirestore(extraDoc).catch(() => {});
+      fetch('/api/docs/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mutation: { type: 'upsert', doc: extraDoc } }),
+      }).catch(() => {});
+    });
   };
 
   // Lock & encrypt a document using the provided password
@@ -1473,6 +1746,9 @@ export default function App() {
               docs={visibleDocs}
               currentMode="table"
               lang={lang}
+              dayLabels={productivityData.dayLabels}
+              productivityActivities={productivityData.activities}
+              onOpenProductivity={() => setActiveView('produktif')}
               onSelectDoc={handleSelectDoc}
               onUpdateDoc={handleUpdateDocById}
               onCreateDoc={handleCreateDoc}
@@ -1485,6 +1761,9 @@ export default function App() {
               docs={visibleDocs}
               currentMode="board"
               lang={lang}
+              dayLabels={productivityData.dayLabels}
+              productivityActivities={productivityData.activities}
+              onOpenProductivity={() => setActiveView('produktif')}
               onSelectDoc={handleSelectDoc}
               onUpdateDoc={handleUpdateDocById}
               onCreateDoc={handleCreateDoc}
@@ -1497,6 +1776,9 @@ export default function App() {
               docs={visibleDocs}
               currentMode="calendar"
               lang={lang}
+              dayLabels={productivityData.dayLabels}
+              productivityActivities={productivityData.activities}
+              onOpenProductivity={() => setActiveView('produktif')}
               onSelectDoc={handleSelectDoc}
               onUpdateDoc={handleUpdateDocById}
               onCreateDoc={handleCreateDoc}
@@ -1553,20 +1835,32 @@ export default function App() {
               onSelectDoc={handleSelectDoc}
             />
           )}
+
+          {activeView === 'produktif' && (
+            <ProduktifPage
+              productivityData={productivityData}
+              docs={visibleDocs}
+              userProfile={userProfile}
+              collaborators={collaborators}
+              onUpdateProductivity={handleUpdateProductivity}
+              onSelectDoc={handleSelectDoc}
+              onSelectView={setActiveView}
+            />
+          )}
         </main>
       </div>
 
       {/* Mobile Bottom Navigation Bar (< md) for fast view switching */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-[#121211]/95 backdrop-blur-md border-t border-[#EAEAE5] dark:border-[#2B2B28] z-30 flex items-center justify-around px-2">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-[#121211]/95 backdrop-blur-md border-t border-[#EAEAE5] dark:border-[#2B2B28] z-30 flex items-center justify-around px-1">
         <button
           onClick={() => setActiveView('overview')}
-          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'overview'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
           }`}
         >
-          <Home size={17} />
+          <Home size={16} />
           <span>Ringkasan</span>
         </button>
 
@@ -1575,62 +1869,74 @@ export default function App() {
             setActiveView('editor');
             if (!activeDocId && visibleDocs[0]) setActiveDocId(visibleDocs[0].id);
           }}
-          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'editor'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
           }`}
         >
-          <FileText size={17} />
+          <FileText size={16} />
           <span>Catatan</span>
         </button>
 
         <button
           onClick={() => setActiveView('database_table')}
-          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_table'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
           }`}
         >
-          <Table size={17} />
+          <Table size={16} />
           <span>Tabel</span>
         </button>
 
         <button
           onClick={() => setActiveView('database_board')}
-          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_board'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
           }`}
         >
-          <Kanban size={17} />
+          <Kanban size={16} />
           <span>Kanban</span>
         </button>
 
         <button
           onClick={() => setActiveView('database_calendar')}
-          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'database_calendar'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
           }`}
         >
-          <CalendarIcon size={17} />
+          <CalendarIcon size={16} />
           <span>Kalender</span>
         </button>
 
         <button
           onClick={() => setActiveView('evaluasi')}
-          className={`flex flex-col items-center gap-1 py-1 px-2 rounded-lg text-[10px] font-medium transition-colors ${
+          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
             activeView === 'evaluasi'
               ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
               : 'text-[#777973]'
           }`}
         >
-          <ChartNoAxesCombined size={17} />
+          <ChartNoAxesCombined size={16} />
           <span>Evaluasi</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('produktif')}
+          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+            activeView === 'produktif'
+              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+              : 'text-[#777973]'
+          }`}
+        >
+          <CalendarCheck2 size={16} />
+          <span>Produktif</span>
         </button>
       </nav>
 

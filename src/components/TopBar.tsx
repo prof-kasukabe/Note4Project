@@ -128,6 +128,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         return docs.find((d) => d.id === DESIGN_PROJECT_DOC_ID)?.title || 'Identitas Kopi Sore';
       case 'evaluasi':
         return 'Evaluasi';
+      case 'produktif':
+        return 'Produktif';
       case 'editor':
         return activeDoc?.title || 'Dokumen';
       default:

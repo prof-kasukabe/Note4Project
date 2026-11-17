@@ -34,7 +34,8 @@
         "lastModifiedBy": { "type": "object", "description": "User details who last changed the status or document" },
         "statusHistory": { "type": "array", "description": "Audit trail log of status changes" },
         "evaluationData": { "type": "object", "description": "Workspace evaluation KPIs, project budgets, issues, and retrospective notes" },
-        "projectData": { "type": "object", "description": "Structured project tasks, discussions, tool links, and team notes" }
+        "projectData": { "type": "object", "description": "Structured project tasks, discussions, tool links, and team notes" },
+        "productivityData": { "type": "object", "description": "Daily productivity activities with per-task notes and collaborator comments, focus durations, reflections, and mini calendar work labels" }
       },
       "required": ["id", "title", "createdAt", "updatedAt"]
     }

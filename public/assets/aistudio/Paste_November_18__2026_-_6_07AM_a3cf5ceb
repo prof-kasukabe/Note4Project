@@ -1,0 +1,5106 @@
+/* Ruang bersama · Produktif */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 0px;
+
+position: relative;
+width: 1440px;
+height: 1526px;
+
+background: #FFFFFF;
+
+
+/* Navigasi workspace */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 22px 12px 18px;
+gap: 26px;
+
+width: 224px;
+height: 1526px;
+
+background: #F8F8F6;
+border-right: 1px solid #EAEAE5;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Identitas workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 8px;
+gap: 9px;
+
+width: 200px;
+height: 28px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Logo workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 28px;
+height: 28px;
+
+background: #282925;
+border-radius: 6px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Monogram */
+
+width: 11px;
+height: 19px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 16px;
+line-height: 19px;
+
+color: #FFFFFF;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Nama workspace */
+
+width: 124px;
+height: 17px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 14px;
+line-height: 17px;
+/* identical to box height */
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* chevrons-up-down */
+
+width: 14px;
+height: 14px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 29.17%;
+right: 29.17%;
+top: 16.67%;
+bottom: 16.67%;
+
+border: 1px solid #777973;
+
+
+/* Menu utama */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 3px;
+
+width: 200px;
+height: 231px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* search */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 12.5%;
+bottom: 12.5%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 122px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Jumlah */
+
+width: 22px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 13px;
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* inbox */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 16.67%;
+bottom: 16.67%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 136px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Jumlah */
+
+width: 8px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 13px;
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* house */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 8.33%;
+bottom: 12.5%;
+
+border: 1px solid #282925;
+
+
+/* Label */
+
+width: 154px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* circle-check */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 8.33%;
+bottom: 8.33%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 137px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Jumlah */
+
+width: 7px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 13px;
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Menu evaluasi aktif */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* chart-no-axes-combined */
+
+width: 14px;
+height: 14px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 12.5%;
+bottom: 12.5%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 156px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Menu produktif aktif */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #EAECE5;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* chart-no-axes-combined */
+
+width: 14px;
+height: 14px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 12.5%;
+bottom: 12.5%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 156px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Halaman workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 8px;
+
+width: 200px;
+height: 174px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Judul navigasi */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: space-between;
+align-items: flex-start;
+padding: 0px 10px;
+
+width: 200px;
+height: 13px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Label */
+
+width: 69px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 13px;
+
+color: #A1A29B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* plus */
+
+width: 13px;
+height: 13px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 20.83%;
+right: 20.83%;
+top: 20.83%;
+bottom: 20.83%;
+
+border: 1px solid #777973;
+
+
+/* Halaman */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 3px;
+
+width: 200px;
+height: 153px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* folder-open */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.32%;
+top: 12.5%;
+bottom: 16.67%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 137px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Jumlah */
+
+width: 7px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 13px;
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* calendar-days */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 8.33%;
+bottom: 8.33%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 154px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* file-text */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 16.67%;
+right: 16.67%;
+top: 8.33%;
+bottom: 8.33%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 154px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* users */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 12.5%;
+bottom: 12.5%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 136px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Jumlah */
+
+width: 8px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 13px;
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Proyek favorit */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 10px;
+
+width: 200px;
+height: 151px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Judul */
+
+width: 55px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 13px;
+
+color: #A1A29B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* globe */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 8.33%;
+bottom: 8.33%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 154px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* smartphone */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 20.83%;
+right: 20.83%;
+top: 8.33%;
+bottom: 8.33%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 154px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* palette */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 8.33%;
+bottom: 8.33%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 154px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Ruang fleksibel */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+
+width: 200px;
+height: 526px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+align-self: stretch;
+flex-grow: 1;
+
+
+/* Ajakan berkolaborasi */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 12px;
+gap: 9px;
+
+width: 200px;
+height: 133px;
+
+border: 1px solid #EAEAE5;
+border-radius: 6px;
+
+/* Inside auto layout */
+flex: none;
+order: 5;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* user-plus */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 12.5%;
+bottom: 12.5%;
+
+border: 1px solid #282925;
+
+
+/* Judul */
+
+width: 148px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Deskripsi */
+
+width: 176px;
+height: 36px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 160%;
+/* or 18px */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Undang teman */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 6px;
+
+width: 96px;
+height: 13px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Label */
+
+width: 78px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 11px;
+line-height: 13px;
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* arrow-right */
+
+width: 12px;
+height: 12px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 20.83%;
+right: 20.83%;
+top: 20.83%;
+bottom: 20.83%;
+
+border: 1px solid #777973;
+
+
+/* Pengaturan akun */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 10px;
+
+width: 200px;
+height: 87px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 6;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Menu workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 10px;
+gap: 10px;
+
+width: 200px;
+height: 36px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* settings-2 */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 16.67%;
+right: 16.67%;
+top: 16.67%;
+bottom: 16.67%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 154px;
+height: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 16px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Pemisah */
+
+width: 200px;
+height: 1px;
+
+background: #EAEAE5;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Akun aktif */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 6px;
+gap: 8px;
+
+width: 200px;
+height: 30px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Avatar anggota */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 30px;
+height: 30px;
+
+background: #ECEAE4;
+border: 2px solid #FFFFFF;
+border-radius: 100px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Inisial */
+
+width: 16px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 11px;
+line-height: 13px;
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Identitas */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 3px;
+
+width: 128px;
+height: 30px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 1;
+
+
+/* Nama */
+
+width: 67px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Keterangan */
+
+width: 60px;
+height: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 10px;
+line-height: 12px;
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* chevrons-up-down */
+
+width: 14px;
+height: 14px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 29.17%;
+right: 29.17%;
+top: 16.67%;
+bottom: 16.67%;
+
+border: 1px solid #777973;
+
+
+/* Workspace produktif */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+
+width: 1216px;
+height: 1526px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Bilah workspace */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: space-between;
+align-items: center;
+padding: 0px 32px;
+
+width: 1216px;
+height: 64px;
+
+border-bottom: 1px solid #EAEAE5;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Jejak halaman */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 11px;
+
+width: 169px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* panel-left */
+
+width: 16px;
+height: 16px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 12.5%;
+bottom: 12.5%;
+
+border: 1px solid #777973;
+
+
+/* Workspace */
+
+width: 63px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Pemisah */
+
+width: 5px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #A1A29B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* Halaman aktif */
+
+width: 52px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Aksi halaman */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 18px;
+
+width: 400px;
+height: 34px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Sinkronisasi */
+
+width: 150px;
+height: 13px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 13px;
+
+color: #A1A29B;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Anggota workspace */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 0px;
+
+width: 87px;
+height: 27px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Avatar anggota */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 27px;
+height: 27px;
+
+background: #ECEAE4;
+border: 2px solid #FFFFFF;
+border-radius: 100px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+margin: 0px -7px;
+
+
+/* Inisial */
+
+width: 14px;
+height: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 9px;
+line-height: 11px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Avatar anggota */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 27px;
+height: 27px;
+
+background: #EEE3DF;
+border: 2px solid #FFFFFF;
+border-radius: 100px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+margin: 0px -7px;
+
+
+/* Inisial */
+
+width: 13px;
+height: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 9px;
+line-height: 11px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Avatar anggota */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 27px;
+height: 27px;
+
+background: #E2E8EE;
+border: 2px solid #FFFFFF;
+border-radius: 100px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+margin: 0px -7px;
+
+
+/* Inisial */
+
+width: 12px;
+height: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 9px;
+line-height: 11px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Avatar anggota */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+justify-content: center;
+align-items: center;
+padding: 0px;
+
+width: 27px;
+height: 27px;
+
+background: #E3EBE3;
+border: 2px solid #FFFFFF;
+border-radius: 100px;
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Inisial */
+
+width: 13px;
+height: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 9px;
+line-height: 11px;
+/* identical to box height */
+
+color: #777973;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Tombol */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px 12px;
+gap: 7px;
+
+width: 91px;
+height: 34px;
+
+background: #FFFFFF;
+border: 1px solid #EAEAE5;
+border-radius: 6px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* share-2 */
+
+width: 14px;
+height: 14px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 8.33%;
+bottom: 8.33%;
+
+border: 1px solid #777973;
+
+
+/* Label */
+
+width: 46px;
+height: 15px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 15px;
+/* identical to box height */
+
+color: #282925;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* ellipsis */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 16.67%;
+right: 16.67%;
+top: 45.83%;
+bottom: 45.83%;
+
+border: 1px solid #777973;
+
+
+/* Isi produktivitas */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 36px 48px;
+gap: 28px;
+
+width: 1216px;
+height: 1398px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Judul dan filter */
+
+width: 1120px;
+height: 148px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* LANGKAH KECIL, SETIAP HARI */
+
+position: absolute;
+width: 162px;
+height: 17px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Selasa, 17 November 2026 */
+
+position: absolute;
+width: 139px;
+height: 17px;
+left: 918px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Produktif, dengan ritmemu sendiri. */
+
+position: absolute;
+width: 519px;
+height: 48px;
+left: 0px;
+top: 28px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 32px;
+line-height: 150%;
+/* identical to box height, or 48px */
+
+color: #282925;
+
+
+
+/* Pantau progres harian dan kenali pekerjaan yang paling sering kamu lakukan. */
+
+position: absolute;
+width: 472px;
+height: 20px;
+left: 0px;
+top: 81px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #777973;
+
+
+
+/* +  Catat aktivitas */
+
+position: absolute;
+width: 135px;
+height: 36px;
+left: 985px;
+top: 40px;
+
+background: #282925;
+border-radius: 4px;
+
+
+/* +  Catat aktivitas */
+
+position: absolute;
+width: 98px;
+height: 18px;
+left: 12px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #FFFFFF;
+
+
+
+/* Saya  ⌄ */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 85px;
+height: 36px;
+left: 0px;
+top: 112px;
+
+background: #FFFFFF;
+border: 1px solid #E9EAE5;
+border-radius: 4px;
+
+
+/* Saya  ⌄ */
+
+position: absolute;
+width: 41px;
+height: 18px;
+left: 12px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Semua proyek  ⌄ */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 145px;
+height: 36px;
+left: 95px;
+top: 112px;
+
+background: #FFFFFF;
+border: 1px solid #E9EAE5;
+border-radius: 4px;
+
+
+/* Semua proyek  ⌄ */
+
+position: absolute;
+width: 95px;
+height: 18px;
+left: 12px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* 11–17 Nov 2026  ⌄ */
+
+box-sizing: border-box;
+
+position: absolute;
+width: 165px;
+height: 36px;
+left: 250px;
+top: 112px;
+
+background: #FFFFFF;
+border: 1px solid #E9EAE5;
+border-radius: 4px;
+
+
+/* 11–17 Nov 2026  ⌄ */
+
+position: absolute;
+width: 102px;
+height: 18px;
+left: 12px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Tampilan contoh · aktivitas pribadi */
+
+position: absolute;
+width: 178px;
+height: 17px;
+left: 915px;
+top: 123px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Ringkasan produktivitas */
+
+width: 1120px;
+height: 120px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Pemisah */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 0px;
+
+background: #E9EAE5;
+
+
+/* Pemisah */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 119px;
+
+background: #E9EAE5;
+
+
+/* Tugas hari ini */
+
+position: absolute;
+width: 75px;
+height: 18px;
+left: 0px;
+top: 19px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 4 / 6 */
+
+position: absolute;
+width: 62px;
+height: 42px;
+left: 0px;
+top: 40px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 28px;
+line-height: 150%;
+/* identical to box height, or 42px */
+
+color: #282925;
+
+
+
+/* 67% dari target harian */
+
+position: absolute;
+width: 115px;
+height: 17px;
+left: 0px;
+top: 87px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Batas metrik */
+
+position: absolute;
+width: 1px;
+height: 70px;
+left: 260px;
+top: 25px;
+
+background: #E9EAE5;
+
+
+/* Selesai minggu ini */
+
+position: absolute;
+width: 102px;
+height: 18px;
+left: 286px;
+top: 19px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 35 tugas */
+
+position: absolute;
+width: 117px;
+height: 42px;
+left: 286px;
+top: 40px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 28px;
+line-height: 150%;
+/* identical to box height, or 42px */
+
+color: #282925;
+
+
+
+/* Target 42 tugas · tercapai 83% */
+
+position: absolute;
+width: 160px;
+height: 17px;
+left: 286px;
+top: 87px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Batas metrik */
+
+position: absolute;
+width: 1px;
+height: 70px;
+left: 546px;
+top: 25px;
+
+background: #E9EAE5;
+
+
+/* Waktu fokus */
+
+position: absolute;
+width: 70px;
+height: 18px;
+left: 572px;
+top: 19px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 21 jam */
+
+position: absolute;
+width: 85px;
+height: 42px;
+left: 572px;
+top: 40px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 28px;
+line-height: 150%;
+/* identical to box height, or 42px */
+
+color: #282925;
+
+
+
+/* Total selama 7 hari terakhir */
+
+position: absolute;
+width: 141px;
+height: 17px;
+left: 572px;
+top: 87px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Batas metrik */
+
+position: absolute;
+width: 1px;
+height: 70px;
+left: 832px;
+top: 25px;
+
+background: #E9EAE5;
+
+
+/* Konsistensi */
+
+position: absolute;
+width: 65px;
+height: 18px;
+left: 858px;
+top: 19px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 7 hari */
+
+position: absolute;
+width: 74px;
+height: 42px;
+left: 858px;
+top: 40px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 28px;
+line-height: 150%;
+/* identical to box height, or 42px */
+
+color: #282925;
+
+
+
+/* Aktif setiap hari minggu ini */
+
+position: absolute;
+width: 138px;
+height: 17px;
+left: 858px;
+top: 87px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Progres dan kebiasaan */
+
+width: 1120px;
+height: 364px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Grafik progres harian */
+
+position: absolute;
+width: 706px;
+height: 364px;
+left: 0px;
+top: 0px;
+
+
+
+/* Progres setiap hari */
+
+position: absolute;
+width: 164px;
+height: 27px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 18px;
+line-height: 150%;
+/* identical to box height, or 27px */
+
+color: #282925;
+
+
+
+/* Jumlah tugas selesai · 11–17 November */
+
+position: absolute;
+width: 220px;
+height: 18px;
+left: 0px;
+top: 31px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* ■  Selesai */
+
+position: absolute;
+width: 54px;
+height: 17px;
+left: 487px;
+top: 6px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* ━  Target 6 */
+
+position: absolute;
+width: 61px;
+height: 17px;
+left: 591px;
+top: 6px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* 0 */
+
+position: absolute;
+width: 7px;
+height: 15px;
+left: 5px;
+top: 257px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 10px;
+line-height: 150%;
+/* identical to box height, or 15px */
+
+color: #777973;
+
+
+
+/* Pemisah */
+
+position: absolute;
+width: 655px;
+height: 1px;
+left: 35px;
+top: 265px;
+
+background: #E9EAE5;
+
+
+/* 2 */
+
+position: absolute;
+width: 7px;
+height: 15px;
+left: 5px;
+top: 210px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 10px;
+line-height: 150%;
+/* identical to box height, or 15px */
+
+color: #777973;
+
+
+
+/* Pemisah */
+
+position: absolute;
+width: 655px;
+height: 1px;
+left: 35px;
+top: 218px;
+
+background: #E9EAE5;
+
+
+/* 4 */
+
+position: absolute;
+width: 7px;
+height: 15px;
+left: 5px;
+top: 163px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 10px;
+line-height: 150%;
+/* identical to box height, or 15px */
+
+color: #777973;
+
+
+
+/* Pemisah */
+
+position: absolute;
+width: 655px;
+height: 1px;
+left: 35px;
+top: 171px;
+
+background: #E9EAE5;
+
+
+/* 6 */
+
+position: absolute;
+width: 7px;
+height: 15px;
+left: 5px;
+top: 116px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 10px;
+line-height: 150%;
+/* identical to box height, or 15px */
+
+color: #777973;
+
+
+
+/* Pemisah */
+
+position: absolute;
+width: 655px;
+height: 1px;
+left: 35px;
+top: 124px;
+
+background: #E9EAE5;
+
+
+/* 8 */
+
+position: absolute;
+width: 7px;
+height: 15px;
+left: 5px;
+top: 69px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 10px;
+line-height: 150%;
+/* identical to box height, or 15px */
+
+color: #777973;
+
+
+
+/* Pemisah */
+
+position: absolute;
+width: 655px;
+height: 1px;
+left: 35px;
+top: 77px;
+
+background: #E9EAE5;
+
+
+/* Selesai 11 November: 4 tugas */
+
+position: absolute;
+width: 42px;
+height: 94px;
+left: 57px;
+top: 171px;
+
+background: #8EAB97;
+border-radius: 3px 3px 0px 0px;
+
+
+/* 4 */
+
+position: absolute;
+width: 8px;
+height: 18px;
+left: 73px;
+top: 147px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Rab 11 */
+
+position: absolute;
+width: 34px;
+height: 17px;
+left: 56px;
+top: 279px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Selesai 12 November: 6 tugas */
+
+position: absolute;
+width: 42px;
+height: 141px;
+left: 148px;
+top: 124px;
+
+background: #8EAB97;
+border-radius: 3px 3px 0px 0px;
+
+
+/* 6 */
+
+position: absolute;
+width: 8px;
+height: 18px;
+left: 164px;
+top: 100px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Kam 12 */
+
+position: absolute;
+width: 38px;
+height: 17px;
+left: 147px;
+top: 279px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Selesai 13 November: 5 tugas */
+
+position: absolute;
+width: 42px;
+height: 117.5px;
+left: 239px;
+top: 147.5px;
+
+background: #8EAB97;
+border-radius: 3px 3px 0px 0px;
+
+
+/* 5 */
+
+position: absolute;
+width: 8px;
+height: 18px;
+left: 255px;
+top: 123.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Jum 13 */
+
+position: absolute;
+width: 38px;
+height: 17px;
+left: 238px;
+top: 279px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Selesai 14 November: 7 tugas */
+
+position: absolute;
+width: 42px;
+height: 164.5px;
+left: 330px;
+top: 100.5px;
+
+background: #8EAB97;
+border-radius: 3px 3px 0px 0px;
+
+
+/* 7 */
+
+position: absolute;
+width: 7px;
+height: 18px;
+left: 346px;
+top: 76.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Sab 14 */
+
+position: absolute;
+width: 36px;
+height: 17px;
+left: 329px;
+top: 279px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Selesai 15 November: 6 tugas */
+
+position: absolute;
+width: 42px;
+height: 141px;
+left: 421px;
+top: 124px;
+
+background: #8EAB97;
+border-radius: 3px 3px 0px 0px;
+
+
+/* 6 */
+
+position: absolute;
+width: 8px;
+height: 18px;
+left: 437px;
+top: 100px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Min 15 */
+
+position: absolute;
+width: 34px;
+height: 17px;
+left: 420px;
+top: 279px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Selesai 16 November: 3 tugas */
+
+position: absolute;
+width: 42px;
+height: 70.5px;
+left: 512px;
+top: 194.5px;
+
+background: #8EAB97;
+border-radius: 3px 3px 0px 0px;
+
+
+/* 3 */
+
+position: absolute;
+width: 8px;
+height: 18px;
+left: 528px;
+top: 170.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Sen 16 */
+
+position: absolute;
+width: 35px;
+height: 17px;
+left: 511px;
+top: 279px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Selesai 17 November: 4 tugas */
+
+position: absolute;
+width: 42px;
+height: 94px;
+left: 603px;
+top: 171px;
+
+background: #567561;
+border-radius: 3px 3px 0px 0px;
+
+
+/* 4 */
+
+position: absolute;
+width: 8px;
+height: 18px;
+left: 619px;
+top: 147px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #567561;
+
+
+
+/* Sel 17 */
+
+position: absolute;
+width: 32px;
+height: 17px;
+left: 602px;
+top: 279px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Garis target 6 tugas */
+
+position: absolute;
+width: 655px;
+height: 1px;
+left: 35px;
+top: 124px;
+
+background: #777973;
+opacity: 0.65;
+
+
+/* Hari ini */
+
+position: absolute;
+width: 33px;
+height: 15px;
+left: 594px;
+top: 302px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 10px;
+line-height: 150%;
+/* identical to box height, or 15px */
+
+color: #567561;
+
+
+
+/* Rangkuman mingguan */
+
+position: absolute;
+width: 706px;
+height: 35px;
+left: 0px;
+top: 329px;
+
+background: #F8F8F6;
+border-radius: 4px;
+
+
+/* 35 dari 42 tugas selesai. Pencapaian tertinggi: Sabtu, 7 tugas. */
+
+position: absolute;
+width: 352px;
+height: 18px;
+left: 12px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Pekerjaan paling sering */
+
+position: absolute;
+width: 382px;
+height: 364px;
+left: 738px;
+top: 0px;
+
+
+
+/* Paling sering dikerjakan */
+
+position: absolute;
+width: 208px;
+height: 27px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 18px;
+line-height: 150%;
+/* identical to box height, or 27px */
+
+color: #282925;
+
+
+
+/* Dari 35 tugas selesai minggu ini */
+
+position: absolute;
+width: 180px;
+height: 18px;
+left: 0px;
+top: 31px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 01 */
+
+position: absolute;
+width: 12px;
+height: 17px;
+left: 0px;
+top: 78px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Desain antarmuka */
+
+position: absolute;
+width: 113px;
+height: 20px;
+left: 29px;
+top: 77px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #282925;
+
+
+
+/* 12 tugas · 34% */
+
+position: absolute;
+width: 77px;
+height: 17px;
+left: 279px;
+top: 78px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Latar frekuensi */
+
+position: absolute;
+width: 353px;
+height: 5px;
+left: 29px;
+top: 106px;
+
+background: #E9EAE5;
+border-radius: 2px;
+
+
+/* Frekuensi Desain antarmuka */
+
+position: absolute;
+width: 353px;
+height: 5px;
+left: 29px;
+top: 106px;
+
+background: #567561;
+border-radius: 2px;
+
+
+/* 02 */
+
+position: absolute;
+width: 14px;
+height: 17px;
+left: 0px;
+top: 134px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Pengembangan */
+
+position: absolute;
+width: 96px;
+height: 20px;
+left: 29px;
+top: 133px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #282925;
+
+
+
+/* 9 tugas · 26% */
+
+position: absolute;
+width: 71px;
+height: 17px;
+left: 279px;
+top: 134px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Latar frekuensi */
+
+position: absolute;
+width: 353px;
+height: 5px;
+left: 29px;
+top: 162px;
+
+background: #E9EAE5;
+border-radius: 2px;
+
+
+/* Frekuensi Pengembangan */
+
+position: absolute;
+width: 264.75px;
+height: 5px;
+left: 29px;
+top: 162px;
+
+background: #7F9787;
+border-radius: 2px;
+
+
+/* 03 */
+
+position: absolute;
+width: 14px;
+height: 17px;
+left: 0px;
+top: 190px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Riset & perencanaan */
+
+position: absolute;
+width: 126px;
+height: 20px;
+left: 29px;
+top: 189px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #282925;
+
+
+
+/* 8 tugas · 23% */
+
+position: absolute;
+width: 71px;
+height: 17px;
+left: 279px;
+top: 190px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Latar frekuensi */
+
+position: absolute;
+width: 353px;
+height: 5px;
+left: 29px;
+top: 218px;
+
+background: #E9EAE5;
+border-radius: 2px;
+
+
+/* Frekuensi Riset & perencanaan */
+
+position: absolute;
+width: 235.33px;
+height: 5px;
+left: 29px;
+top: 218px;
+
+background: #A2B6A8;
+border-radius: 2px;
+
+
+/* 04 */
+
+position: absolute;
+width: 14px;
+height: 17px;
+left: 0px;
+top: 246px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Review & revisi */
+
+position: absolute;
+width: 92px;
+height: 20px;
+left: 29px;
+top: 245px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #282925;
+
+
+
+/* 6 tugas · 17% */
+
+position: absolute;
+width: 69px;
+height: 17px;
+left: 279px;
+top: 246px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Latar frekuensi */
+
+position: absolute;
+width: 353px;
+height: 5px;
+left: 29px;
+top: 274px;
+
+background: #E9EAE5;
+border-radius: 2px;
+
+
+/* Frekuensi Review & revisi */
+
+position: absolute;
+width: 176.5px;
+height: 5px;
+left: 29px;
+top: 274px;
+
+background: #C2D0C6;
+border-radius: 2px;
+
+
+/* Pola kerja */
+
+position: absolute;
+width: 382px;
+height: 50px;
+left: 0px;
+top: 314px;
+
+background: #EAF0EB;
+border-radius: 4px;
+
+
+/* Desain antarmuka jadi fokus utamamu. */
+
+position: absolute;
+width: 222px;
+height: 18px;
+left: 12px;
+top: 7px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #567561;
+
+
+
+/* 12 tugas selesai dalam 7 hari terakhir. */
+
+position: absolute;
+width: 195px;
+height: 17px;
+left: 12px;
+top: 27px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Aktivitas hari ini */
+
+width: 1120px;
+height: 416px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 3;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Aktivitas hari ini */
+
+position: absolute;
+width: 140px;
+height: 27px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 18px;
+line-height: 150%;
+/* identical to box height, or 27px */
+
+color: #282925;
+
+
+
+/* Selasa, 17 November · 4 dari 6 tugas selesai */
+
+position: absolute;
+width: 250px;
+height: 18px;
+left: 0px;
+top: 31px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Semua aktivitas  ⌄ */
+
+position: absolute;
+width: 103px;
+height: 18px;
+left: 993px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Latar progres */
+
+position: absolute;
+width: 1120px;
+height: 5px;
+left: 0px;
+top: 65px;
+
+background: #E9EAE5;
+border-radius: 2px;
+
+
+/* Progres 67 persen */
+
+position: absolute;
+width: 746.67px;
+height: 5px;
+left: 0px;
+top: 65px;
+
+background: #8EAB97;
+border-radius: 2px;
+
+
+/* Judul kolom aktivitas */
+
+position: absolute;
+width: 1120px;
+height: 34px;
+left: 0px;
+top: 89px;
+
+background: #F8F8F6;
+
+
+/* Aktivitas */
+
+position: absolute;
+width: 45px;
+height: 17px;
+left: 14px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Proyek */
+
+position: absolute;
+width: 36px;
+height: 17px;
+left: 423px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Kategori */
+
+position: absolute;
+width: 44px;
+height: 17px;
+left: 670px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Durasi */
+
+position: absolute;
+width: 33px;
+height: 17px;
+left: 864px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Status */
+
+position: absolute;
+width: 34px;
+height: 17px;
+left: 978px;
+top: 8px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Finalisasi desain halaman utama */
+
+position: absolute;
+width: 1120px;
+height: 43px;
+left: 0px;
+top: 123px;
+
+
+
+/* Pemisah baris */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 42px;
+
+background: #E9EAE5;
+
+
+/* ✓ */
+
+position: absolute;
+width: 12px;
+height: 20px;
+left: 14px;
+top: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #567561;
+
+
+
+/* Finalisasi desain halaman utama */
+
+position: absolute;
+width: 185px;
+height: 18px;
+left: 39px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Website portofolio */
+
+position: absolute;
+width: 104px;
+height: 18px;
+left: 423px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Desain antarmuka */
+
+position: absolute;
+width: 102px;
+height: 18px;
+left: 670px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 45 mnt */
+
+position: absolute;
+width: 41px;
+height: 18px;
+left: 864px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Selesai */
+
+position: absolute;
+width: 63px;
+height: 23px;
+left: 978px;
+top: 10px;
+
+background: #EAF0EB;
+border-radius: 3px;
+
+
+/* Selesai */
+
+position: absolute;
+width: 38px;
+height: 17px;
+left: 8px;
+top: 3px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Susun alur onboarding */
+
+position: absolute;
+width: 1120px;
+height: 43px;
+left: 0px;
+top: 166px;
+
+
+
+/* Pemisah baris */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 42px;
+
+background: #E9EAE5;
+
+
+/* ✓ */
+
+position: absolute;
+width: 12px;
+height: 20px;
+left: 14px;
+top: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #567561;
+
+
+
+/* Susun alur onboarding */
+
+position: absolute;
+width: 129px;
+height: 18px;
+left: 39px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Aplikasi habit tracker */
+
+position: absolute;
+width: 119px;
+height: 18px;
+left: 423px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Desain antarmuka */
+
+position: absolute;
+width: 102px;
+height: 18px;
+left: 670px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 30 mnt */
+
+position: absolute;
+width: 41px;
+height: 18px;
+left: 864px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Selesai */
+
+position: absolute;
+width: 63px;
+height: 23px;
+left: 978px;
+top: 10px;
+
+background: #EAF0EB;
+border-radius: 3px;
+
+
+/* Selesai */
+
+position: absolute;
+width: 38px;
+height: 17px;
+left: 8px;
+top: 3px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Review komponen tombol */
+
+position: absolute;
+width: 1120px;
+height: 43px;
+left: 0px;
+top: 209px;
+
+
+
+/* Pemisah baris */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 42px;
+
+background: #E9EAE5;
+
+
+/* ✓ */
+
+position: absolute;
+width: 12px;
+height: 20px;
+left: 14px;
+top: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #567561;
+
+
+
+/* Review komponen tombol */
+
+position: absolute;
+width: 148px;
+height: 18px;
+left: 39px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Sistem desain mini */
+
+position: absolute;
+width: 106px;
+height: 18px;
+left: 423px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Review & revisi */
+
+position: absolute;
+width: 85px;
+height: 18px;
+left: 670px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 20 mnt */
+
+position: absolute;
+width: 40px;
+height: 18px;
+left: 864px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Selesai */
+
+position: absolute;
+width: 63px;
+height: 23px;
+left: 978px;
+top: 10px;
+
+background: #EAF0EB;
+border-radius: 3px;
+
+
+/* Selesai */
+
+position: absolute;
+width: 38px;
+height: 17px;
+left: 8px;
+top: 3px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Rapikan catatan riset */
+
+position: absolute;
+width: 1120px;
+height: 43px;
+left: 0px;
+top: 252px;
+
+
+
+/* Pemisah baris */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 42px;
+
+background: #E9EAE5;
+
+
+/* ✓ */
+
+position: absolute;
+width: 12px;
+height: 20px;
+left: 14px;
+top: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #567561;
+
+
+
+/* Rapikan catatan riset */
+
+position: absolute;
+width: 121px;
+height: 18px;
+left: 39px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Riset pengguna */
+
+position: absolute;
+width: 89px;
+height: 18px;
+left: 423px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Riset & perencanaan */
+
+position: absolute;
+width: 117px;
+height: 18px;
+left: 670px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* 25 mnt */
+
+position: absolute;
+width: 40px;
+height: 18px;
+left: 864px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Selesai */
+
+position: absolute;
+width: 63px;
+height: 23px;
+left: 978px;
+top: 10px;
+
+background: #EAF0EB;
+border-radius: 3px;
+
+
+/* Selesai */
+
+position: absolute;
+width: 38px;
+height: 17px;
+left: 8px;
+top: 3px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Implementasi navigasi mobile */
+
+position: absolute;
+width: 1120px;
+height: 43px;
+left: 0px;
+top: 295px;
+
+
+
+/* Pemisah baris */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 42px;
+
+background: #E9EAE5;
+
+
+/* ○ */
+
+position: absolute;
+width: 12px;
+height: 20px;
+left: 14px;
+top: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #777973;
+
+
+
+/* Implementasi navigasi mobile */
+
+position: absolute;
+width: 169px;
+height: 18px;
+left: 39px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Website portofolio */
+
+position: absolute;
+width: 104px;
+height: 18px;
+left: 423px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Pengembangan */
+
+position: absolute;
+width: 89px;
+height: 18px;
+left: 670px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* — */
+
+position: absolute;
+width: 12px;
+height: 18px;
+left: 864px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Dikerjakan */
+
+position: absolute;
+width: 96px;
+height: 23px;
+left: 978px;
+top: 10px;
+
+background: #EDF1F5;
+border-radius: 3px;
+
+
+/* Dikerjakan */
+
+position: absolute;
+width: 56px;
+height: 17px;
+left: 8px;
+top: 3px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #5D748B;
+
+
+
+/* Eksplorasi halaman pengingat */
+
+position: absolute;
+width: 1120px;
+height: 43px;
+left: 0px;
+top: 338px;
+
+
+
+/* Pemisah baris */
+
+position: absolute;
+width: 1120px;
+height: 1px;
+left: 0px;
+top: 42px;
+
+background: #E9EAE5;
+
+
+/* ○ */
+
+position: absolute;
+width: 12px;
+height: 20px;
+left: 14px;
+top: 12px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 13px;
+line-height: 150%;
+/* identical to box height, or 20px */
+
+color: #777973;
+
+
+
+/* Eksplorasi halaman pengingat */
+
+position: absolute;
+width: 172px;
+height: 18px;
+left: 39px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #282925;
+
+
+
+/* Aplikasi habit tracker */
+
+position: absolute;
+width: 119px;
+height: 18px;
+left: 423px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Desain antarmuka */
+
+position: absolute;
+width: 102px;
+height: 18px;
+left: 670px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* — */
+
+position: absolute;
+width: 12px;
+height: 18px;
+left: 864px;
+top: 11px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Belum mulai */
+
+position: absolute;
+width: 96px;
+height: 23px;
+left: 978px;
+top: 10px;
+
+background: #F2F2EE;
+border-radius: 3px;
+
+
+/* Belum mulai */
+
+position: absolute;
+width: 64px;
+height: 17px;
+left: 8px;
+top: 3px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* +  Tambah aktivitas */
+
+position: absolute;
+width: 111px;
+height: 18px;
+left: 0px;
+top: 394px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #777973;
+
+
+
+/* Total waktu fokus hari ini: 2 jam */
+
+position: absolute;
+width: 164px;
+height: 17px;
+left: 933px;
+top: 394px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Refleksi produktivitas */
+
+width: 1120px;
+height: 166px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 4;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Refleksi hari ini */
+
+position: absolute;
+width: 730px;
+height: 130px;
+left: 0px;
+top: 0px;
+
+background: #F8F8F6;
+border-radius: 5px;
+
+
+/* Satu langkah lagi untuk hari yang baik. */
+
+position: absolute;
+width: 297px;
+height: 24px;
+left: 18px;
+top: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 16px;
+line-height: 150%;
+/* identical to box height, or 24px */
+
+color: #282925;
+
+
+
+/* Dua tugas lagi menuju target harianmu. Lanjutkan navigasi mobile, lalu siapkan eksplorasi halaman pengingat. */
+
+position: absolute;
+width: 670px;
+height: 40px;
+left: 18px;
+top: 47px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 13px;
+line-height: 150%;
+/* or 20px */
+
+color: #777973;
+
+
+
+/* Tulis refleksi hari ini  → */
+
+position: absolute;
+width: 131px;
+height: 18px;
+left: 18px;
+top: 99px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 12px;
+line-height: 150%;
+/* identical to box height, or 18px */
+
+color: #567561;
+
+
+
+/* Kebiasaan baik */
+
+position: absolute;
+width: 366px;
+height: 130px;
+left: 754px;
+top: 0px;
+
+background: #EAF0EB;
+border-radius: 5px;
+
+
+/* 7 HARI KONSISTEN */
+
+position: absolute;
+width: 101px;
+height: 17px;
+left: 18px;
+top: 16px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #567561;
+
+
+
+/* Sedikit, tapi terus bergerak. */
+
+position: absolute;
+width: 225px;
+height: 26px;
+left: 18px;
+top: 43px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 17px;
+line-height: 150%;
+/* identical to box height, or 26px */
+
+color: #282925;
+
+
+
+/* Kamu menyelesaikan tugas setiap hari. Pertahankan ritme yang nyaman untukmu. */
+
+position: absolute;
+width: 325px;
+height: 36px;
+left: 18px;
+top: 76px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 150%;
+/* or 18px */
+
+color: #567561;
+
+
+
+/* Ruang kecil, progres yang berarti. */
+
+position: absolute;
+width: 175px;
+height: 17px;
+left: 0px;
+top: 150px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+
+
+
+/* Data contoh untuk tampilan produktivitas. */
+
+position: absolute;
+width: 218px;
+height: 17px;
+left: 897px;
+top: 150px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 150%;
+/* identical to box height, or 16px */
+
+color: #777973;
+

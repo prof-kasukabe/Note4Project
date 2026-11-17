@@ -81,15 +81,31 @@ export async function testFirestoreConnection(): Promise<boolean> {
 }
 
 /**
+ * Recursively strip undefined values so Firestore never rejects nested objects/arrays
+ */
+function stripUndefinedDeep(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== undefined)
+      .map((item) => stripUndefinedDeep(item));
+  }
+  if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) {
+        out[k] = stripUndefinedDeep(v);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
+/**
  * Clean document payload to ensure no undefined values are passed to Firestore
  */
 function cleanDocPayload(d: Partial<DocItem>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(d)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
-  }
+  const result = stripUndefinedDeep(d) as Record<string, unknown>;
   if (d.isEncrypted === false) {
     result.encryptedPayload = deleteField();
   }
@@ -200,7 +216,8 @@ export async function deleteDocFromFirestore(docId: string, childIds: string[] =
 }
 
 /**
- * Seed initial documents if Firestore collection is completely empty
+ * Seed initial documents if Firestore collection is completely empty,
+ * and ensure newer system workspace docs (like doc-workspace-produktif) exist.
  */
 export async function seedFirestoreIfEmpty(initialDocs: DocItem[]): Promise<boolean> {
   try {
@@ -215,6 +232,23 @@ export async function seedFirestoreIfEmpty(initialDocs: DocItem[]): Promise<bool
       }
       await batch.commit();
       console.log(`> Seeded ${initialDocs.length} initial workspace documents to Firestore`);
+      return true;
+    }
+
+    // Backfill newly added workspace system documents on existing Firestore collections
+    const existingIds = new Set(snapshot.docs.map((s) => s.id));
+    const missingSystemDocs = initialDocs.filter(
+      (d) =>
+        (d.id === 'doc-workspace-produktif' || d.id === 'doc-workspace-evaluasi') &&
+        !existingIds.has(d.id)
+    );
+    if (missingSystemDocs.length > 0) {
+      const batch = writeBatch(db);
+      for (const d of missingSystemDocs) {
+        const ref = doc(db, COLLECTION_NAME, d.id);
+        batch.set(ref, cleanDocPayload(d));
+      }
+      await batch.commit();
       return true;
     }
     return false;

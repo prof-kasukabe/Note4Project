@@ -2,7 +2,64 @@ export type DocStatus = 'not_started' | 'in_progress' | 'completed' | 'archived'
 export type DocPriority = 'low' | 'medium' | 'high';
 export type ThemeMode = 'light' | 'dark' | 'oled' | 'sepia';
 export type Language = 'id' | 'en';
-export type ActiveView = 'overview' | 'editor' | 'database_table' | 'database_board' | 'database_calendar' | 'analytics' | 'trash' | 'project_web' | 'project_mobile' | 'project_design' | 'evaluasi';
+export type ActiveView = 'overview' | 'editor' | 'database_table' | 'database_board' | 'database_calendar' | 'analytics' | 'trash' | 'project_web' | 'project_mobile' | 'project_design' | 'evaluasi' | 'produktif';
+
+export interface ActivityComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorColor: string;
+  text: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface ProductivityActivity {
+  id: string;
+  title: string;
+  projectName: string;
+  linkedDocId?: string;
+  linkedTaskId?: string;
+  category: string;
+  durationMinutes: number;
+  date: string; // YYYY-MM-DD
+  status: 'completed' | 'in_progress' | 'not_started';
+  assignee: string;
+  notes?: string;
+  comments?: ActivityComment[];
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface CalendarDayLabel {
+  id: string;
+  date: string; // YYYY-MM-DD
+  label: string;
+  status: 'completed' | 'in_progress' | 'planned';
+  colorHex: string;
+  projectName?: string;
+  linkedDocId?: string;
+  workedMinutes?: number;
+  createdBy?: string;
+  updatedAt: number;
+}
+
+export interface DailyReflection {
+  id: string;
+  date: string; // YYYY-MM-DD
+  headline: string;
+  summary: string;
+  updatedAt: number;
+}
+
+export interface ProductivityData {
+  dailyTarget: number;
+  weeklyTarget: number;
+  activities: ProductivityActivity[];
+  dayLabels: CalendarDayLabel[];
+  reflections: DailyReflection[];
+  updatedAt: number;
+}
 
 export interface EvaluationProject {
   id: string;
@@ -167,6 +224,7 @@ export interface DocItem {
   isDatabase?: boolean; // whether this doc acts as a database container
   evaluationData?: EvaluationData;
   projectData?: ProjectDetailData;
+  productivityData?: ProductivityData;
   lastModifiedBy?: {
     userId: string;
     name: string;
