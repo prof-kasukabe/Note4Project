@@ -36,6 +36,7 @@ export interface ProductivityTaskSyncHint {
   docId: string;
   taskId?: string;
   taskTitle: string;
+  previousTitle?: string;
   completed: boolean;
   assignee?: string;
   createIfMissing?: boolean;
@@ -192,6 +193,13 @@ export const ProduktifPage: React.FC<ProduktifPageProps> = ({
   const [showTargetEditor, setShowTargetEditor] = useState(false);
   const [dailyTargetInput, setDailyTargetInput] = useState(String(productivityData.dailyTarget || 6));
   const [weeklyTargetInput, setWeeklyTargetInput] = useState(String(productivityData.weeklyTarget || 42));
+
+  React.useEffect(() => {
+    if (!showTargetEditor) {
+      setDailyTargetInput(String(productivityData.dailyTarget || 6));
+      setWeeklyTargetInput(String(productivityData.weeklyTarget || 42));
+    }
+  }, [productivityData.dailyTarget, productivityData.weeklyTarget, showTargetEditor]);
 
   // Task Detail & Collaborator Comments Drawer
   const [detailActivityId, setDetailActivityId] = useState<string | null>(null);
@@ -766,6 +774,7 @@ export const ProduktifPage: React.FC<ProduktifPageProps> = ({
             docId: linkedDoc.id,
             taskId: targetTaskId,
             taskTitle: actTitle.trim(),
+            previousTitle: editingActivity?.title,
             completed: actStatus === 'completed',
             assignee: actAssignee === 'Saya' ? userProfile.name : actAssignee,
             createIfMissing: !editingActivity,

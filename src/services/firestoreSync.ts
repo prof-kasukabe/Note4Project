@@ -2,9 +2,9 @@ import {
   collection,
   doc,
   setDoc,
-  deleteDoc,
   onSnapshot,
   getDocs,
+  getDocsFromServer,
   getDocFromServer,
   writeBatch,
   query,
@@ -112,41 +112,94 @@ function cleanDocPayload(d: Partial<DocItem>): Record<string, unknown> {
   return result;
 }
 
+export interface WorkspaceSnapshotMeta {
+  fromCache: boolean;
+  hasPendingWrites: boolean;
+}
+
 /**
  * Subscribe to real-time document changes across all devices using Firestore onSnapshot
  */
 export function subscribeToWorkspace(
-  onDocsChange: (docs: DocItem[]) => void,
+  onDocsChange: (docs: DocItem[], meta: WorkspaceSnapshotMeta) => void,
   onError?: (err: Error) => void
 ): () => void {
-  // Ensure auth is initialized
-  initAuth();
+  let cancelled = false;
+  let unsubscribeSnapshot: (() => void) | null = null;
 
-  const colRef = collection(db, COLLECTION_NAME);
-  const q = query(colRef, orderBy('updatedAt', 'desc'));
-
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
-      const items: DocItem[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data() as DocItem;
-        items.push({
-          ...data,
-          id: docSnap.id,
-        });
-      });
-      if (items.length > 0) {
-        onDocsChange(items);
-      }
-    },
-    (err) => {
-      handleFirestoreError(err, OperationType.LIST, COLLECTION_NAME);
-      if (onError) onError(err);
+  const start = async () => {
+    try {
+      await initAuth();
+    } catch {
+      // Proceed even if anonymous auth failed; Firestore listener will surface rule errors if any
     }
-  );
+    if (cancelled) return;
 
-  return unsubscribe;
+    const colRef = collection(db, COLLECTION_NAME);
+    const q = query(colRef, orderBy('updatedAt', 'desc'));
+
+    unsubscribeSnapshot = onSnapshot(
+      q,
+      (snapshot) => {
+        if (cancelled) return;
+        const items: DocItem[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as DocItem;
+          items.push({
+            ...data,
+            id: docSnap.id,
+          });
+        });
+        onDocsChange(items, {
+          fromCache: snapshot.metadata.fromCache,
+          hasPendingWrites: snapshot.metadata.hasPendingWrites,
+        });
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, COLLECTION_NAME);
+        if (onError) onError(err);
+      }
+    );
+  };
+
+  start();
+
+  return () => {
+    cancelled = true;
+    if (unsubscribeSnapshot) {
+      unsubscribeSnapshot();
+      unsubscribeSnapshot = null;
+    }
+  };
+}
+
+/**
+ * Explicitly pull the authoritative document list from Cloud Firestore server
+ */
+export async function fetchAllDocsFromFirestore(): Promise<DocItem[]> {
+  try {
+    await initAuth();
+    const colRef = collection(db, COLLECTION_NAME);
+    const q = query(colRef, orderBy('updatedAt', 'desc'));
+    let snapshot;
+    try {
+      snapshot = await getDocsFromServer(q);
+    } catch {
+      snapshot = await getDocs(q);
+    }
+    const items: DocItem[] = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data() as DocItem;
+      items.push({
+        ...data,
+        id: docSnap.id,
+      });
+    });
+    return items;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, COLLECTION_NAME);
+    throw err;
+  }
 }
 
 /**
@@ -182,6 +235,9 @@ export async function saveDocToFirestore(documentItem: DocItem): Promise<void> {
 
   const docPath = `${COLLECTION_NAME}/${safeDoc.id}`;
   try {
+    if (!auth.currentUser) {
+      await initAuth();
+    }
     const docRef = doc(db, COLLECTION_NAME, safeDoc.id);
     const payload = cleanDocPayload(safeDoc);
     await setDoc(docRef, payload, { merge: true });
@@ -200,6 +256,9 @@ export async function deleteDocFromFirestore(docId: string, childIds: string[] =
 
   const docPath = `${COLLECTION_NAME}/${safeId}`;
   try {
+    if (!auth.currentUser) {
+      await initAuth();
+    }
     const batch = writeBatch(db);
     batch.delete(doc(db, COLLECTION_NAME, safeId));
     childIds.forEach((childId) => {

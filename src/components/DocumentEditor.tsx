@@ -26,7 +26,9 @@ import {
   X,
   AlertCircle,
   History,
-  KeyRound
+  KeyRound,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { DocItem, DocStatus, DocPriority, Language, Collaborator } from '../types';
 import { translations } from '../utils/i18n';
@@ -50,6 +52,10 @@ interface DocumentEditorProps {
   onLockWithPassword: (passphrase: string) => Promise<boolean>;
   onUnlockWithPassword: (passphrase: string, permanent?: boolean) => Promise<boolean>;
   onRelockDoc: () => Promise<void>;
+  isFocusMode?: boolean;
+  autoFocusOnType?: boolean;
+  onSetFocusMode?: (enabled: boolean) => void;
+  onToggleAutoFocusOnType?: () => void;
 }
 
 const EMOJI_PRESETS = ['📄', '🚀', '📋', '💡', '⚙️', '📝', '🎯', '🌿', '☕', '🔒', '📚', '⚡', '💻', '🎨', '🔥', '✨'];
@@ -70,6 +76,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   onLockWithPassword,
   onUnlockWithPassword,
   onRelockDoc,
+  isFocusMode = false,
+  autoFocusOnType = true,
+  onSetFocusMode,
+  onToggleAutoFocusOnType,
 }) => {
   const t = translations[lang];
   const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('edit');
@@ -107,13 +117,43 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const isDocumentLocked = Boolean(
+    doc.isEncrypted && !(isDocUnlocked ?? isVaultUnlocked)
+  );
+
+  // Exit Focus Mode on Escape key when no modal or slash command popup is open
+  useEffect(() => {
+    if (!isFocusMode) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showSlashMenu) {
+          setShowSlashMenu(false);
+          return;
+        }
+        if (showCoverModal || showEmojiPicker || showHistoryModal || showLockModal) {
+          return;
+        }
+        e.preventDefault();
+        onSetFocusMode?.(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFocusMode, showSlashMenu, showCoverModal, showEmojiPicker, showHistoryModal, showLockModal, onSetFocusMode]);
+
   // Synchronize title & content
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (autoFocusOnType && !isFocusMode && !isDocumentLocked) {
+      onSetFocusMode?.(true);
+    }
     onUpdateDoc({ title: e.target.value, updatedAt: Date.now() });
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
+    if (autoFocusOnType && !isFocusMode && !isDocumentLocked) {
+      onSetFocusMode?.(true);
+    }
     onUpdateDoc({ content: newContent, updatedAt: Date.now() });
     onSendCursor({ text: newContent.slice(0, 30) });
 
@@ -176,9 +216,6 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     { label: t.blockDivider, prefix: '\n---\n', icon: <SplitSquareVertical size={14} />, desc: 'Garis pemisah visual' },
   ].filter((opt) => opt.label.toLowerCase().includes(slashQuery) || opt.desc.toLowerCase().includes(slashQuery));
 
-  const isDocumentLocked = Boolean(
-    doc.isEncrypted && !(isDocUnlocked ?? isVaultUnlocked)
-  );
   const effectiveContent =
     doc.isEncrypted && !isDocumentLocked && unlockedContent !== undefined
       ? unlockedContent
@@ -347,8 +384,59 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   return (
     <div className="flex-1 h-screen overflow-y-auto bg-white dark:bg-[#121211] text-[#282925] dark:text-[#EDEDE8] flex flex-col relative select-text font-sans">
-      {/* Document Cover Banner */}
-      {doc.coverImage ? (
+      {/* Sticky Minimal Focus Mode Header */}
+      {isFocusMode && (
+        <div className="sticky top-0 z-20 w-full bg-white/95 dark:bg-[#121211]/95 backdrop-blur-sm border-b border-[#EAEAE5] dark:border-[#2B2B28] px-4 sm:px-8 py-2.5 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0 text-xs text-[#777973]">
+            <span className="text-sm shrink-0" aria-hidden="true">{doc.icon || '📄'}</span>
+            <span className="font-medium text-[#282925] dark:text-[#EDEDE8] truncate max-w-[140px] sm:max-w-[260px]">
+              {doc.title || t.emptyTitle}
+            </span>
+            <span aria-hidden="true" className="hidden sm:inline text-[#A1A29B]">·</span>
+            <span className="hidden sm:inline font-mono tabular-nums text-[11px] text-[#777973] whitespace-nowrap shrink-0">
+              {wordCount} {lang === 'id' ? 'kata' : 'words'} · ~{readTimeMin} {lang === 'id' ? 'mnt' : 'min'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {onToggleAutoFocusOnType && (
+              <button
+                type="button"
+                onClick={onToggleAutoFocusOnType}
+                aria-pressed={autoFocusOnType}
+                title={
+                  lang === 'id'
+                    ? 'Aktifkan atau nonaktifkan Mode Fokus otomatis saat mengetik'
+                    : 'Toggle automatic Focus Mode while typing'
+                }
+                className={`px-2.5 py-1 rounded-[4px] border text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  autoFocusOnType
+                    ? 'border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] text-[#282925] dark:text-[#EDEDE8]'
+                    : 'border-[#EAEAE5] dark:border-[#2B2B28] bg-transparent text-[#777973] hover:text-[#282925] dark:hover:text-[#EDEDE8]'
+                }`}
+              >
+                {lang === 'id'
+                  ? `Auto saat mengetik: ${autoFocusOnType ? 'Aktif' : 'Mati'}`
+                  : `Auto on type: ${autoFocusOnType ? 'On' : 'Off'}`}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => onSetFocusMode?.(false)}
+              title={lang === 'id' ? 'Keluar dari Mode Fokus (Esc)' : 'Exit Focus Mode (Esc)'}
+              className="px-3 py-1 rounded-[4px] bg-[#282925] dark:bg-[#EDEDE8] text-white dark:text-[#121211] hover:opacity-90 text-xs font-medium flex items-center gap-1.5 transition-opacity cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <Minimize2 size={13} />
+              <span>{lang === 'id' ? 'Keluar Fokus' : 'Exit Focus'}</span>
+              <span className="hidden sm:inline text-[10px] opacity-70 font-mono">Esc</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Document Cover Banner (Hidden in Focus Mode) */}
+      {!isFocusMode && (doc.coverImage ? (
         <div className="relative group w-full h-40 sm:h-52 shrink-0 overflow-hidden bg-[#F8F8F6] dark:bg-[#181816]">
           {doc.coverImage.startsWith('linear-gradient') ? (
             <div className="w-full h-full" style={{ background: doc.coverImage }} />
@@ -388,7 +476,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             <span>{t.changeCover}</span>
           </button>
         </div>
-      )}
+      ))}
 
       {/* Cover Picker Modal */}
       <CoverPickerModal
@@ -400,58 +488,66 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       />
 
       {/* Main Document Content Container */}
-      <div className="max-w-4xl w-full mx-auto px-6 sm:px-10 md:px-12 py-5 flex-1 flex flex-col">
+      <div
+        className={`w-full mx-auto flex-1 flex flex-col transition-all duration-200 ${
+          isFocusMode
+            ? `${viewMode === 'split' ? 'max-w-5xl' : 'max-w-3xl'} px-6 sm:px-12 py-8 sm:py-12`
+            : 'max-w-4xl px-6 sm:px-10 md:px-12 py-5'
+        }`}
+      >
         {/* Document Icon & Title Header */}
-        <div className="mb-4">
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <div className="relative inline-block">
-              <button
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                title={t.changeIcon}
-                className="w-12 h-12 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] flex items-center justify-center text-3xl hover:bg-[#EAEAE5] transition-colors cursor-pointer"
-              >
-                {doc.icon || '📄'}
-              </button>
-
-              {showEmojiPicker && (
-                <div 
-                  onMouseLeave={() => setShowEmojiPicker(false)}
-                  className="absolute left-0 top-14 p-2 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] shadow-2xl grid grid-cols-8 gap-1.5 z-40 text-xl"
+        <div className={isFocusMode ? 'mb-6' : 'mb-4'}>
+          {!isFocusMode && (
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <div className="relative inline-block">
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  title={t.changeIcon}
+                  className="w-12 h-12 rounded-[6px] bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] flex items-center justify-center text-3xl hover:bg-[#EAEAE5] transition-colors cursor-pointer"
                 >
-                  {EMOJI_PRESETS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => {
-                        onUpdateDoc({ icon: emoji, updatedAt: Date.now() });
-                        setShowEmojiPicker(false);
-                      }}
-                      className="p-1.5 rounded hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors cursor-pointer"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                  {doc.icon || '📄'}
+                </button>
 
-            {/* Quick Action Pill Buttons */}
-            <div className="flex items-center gap-2 text-xs text-[#777973]">
-              <button
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="px-2 py-1 rounded-[4px] hover:bg-[#F8F8F6] dark:hover:bg-[#181816] transition-colors cursor-pointer"
-              >
-                <span>{t.changeIcon}</span>
-              </button>
-              <span className="text-[#A1A29B]">•</span>
-              <button
-                onClick={() => setShowCoverModal(true)}
-                className="px-2 py-1 rounded-[4px] hover:bg-[#F8F8F6] dark:hover:bg-[#181816] transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <ImageIcon size={13} className="text-[#777973]" />
-                <span>{doc.coverImage ? t.changeCover : 'Tambah Sampul / Latar'}</span>
-              </button>
+                {showEmojiPicker && (
+                  <div 
+                    onMouseLeave={() => setShowEmojiPicker(false)}
+                    className="absolute left-0 top-14 p-2 bg-white dark:bg-[#1E1E1C] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[8px] shadow-2xl grid grid-cols-8 gap-1.5 z-40 text-xl"
+                  >
+                    {EMOJI_PRESETS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          onUpdateDoc({ icon: emoji, updatedAt: Date.now() });
+                          setShowEmojiPicker(false);
+                        }}
+                        className="p-1.5 rounded hover:bg-[#F8F8F6] dark:hover:bg-[#252522] transition-colors cursor-pointer"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Action Pill Buttons */}
+              <div className="flex items-center gap-2 text-xs text-[#777973]">
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="px-2 py-1 rounded-[4px] hover:bg-[#F8F8F6] dark:hover:bg-[#181816] transition-colors cursor-pointer"
+                >
+                  <span>{t.changeIcon}</span>
+                </button>
+                <span className="text-[#A1A29B]">•</span>
+                <button
+                  onClick={() => setShowCoverModal(true)}
+                  className="px-2 py-1 rounded-[4px] hover:bg-[#F8F8F6] dark:hover:bg-[#181816] transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <ImageIcon size={13} className="text-[#777973]" />
+                  <span>{doc.coverImage ? t.changeCover : 'Tambah Sampul / Latar'}</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Editable Document Title */}
           <input
@@ -459,12 +555,15 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             value={doc.title}
             onChange={handleTitleChange}
             placeholder={t.emptyTitle}
-            className="w-full text-2xl sm:text-3xl font-semibold tracking-tight bg-transparent text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none"
+            className={`w-full font-semibold tracking-tight bg-transparent text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none ${
+              isFocusMode ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'
+            }`}
           />
         </div>
 
-        {/* Metadata Strip: Status, Priority, Deadline, Reminders, Tags, E2EE (Figma border #EAEAE5) */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 py-3 border-y border-[#EAEAE5] dark:border-[#2B2B28] text-xs text-[#777973] mb-6">
+        {/* Metadata Strip: Status, Priority, Deadline, Reminders, Tags, E2EE (Hidden in Focus Mode) */}
+        {!isFocusMode && (
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 py-3 border-y border-[#EAEAE5] dark:border-[#2B2B28] text-xs text-[#777973] mb-6">
           {/* Status selector */}
           <div className="flex items-center gap-1.5">
             <span className="text-[#A1A29B]">{t.status}:</span>
@@ -617,7 +716,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               </span>
             )}
           </button>
-        </div>
+          </div>
+        )}
 
         {/* Audit Trail Modal */}
         {showHistoryModal && (
@@ -921,8 +1021,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           </div>
         ) : (
           <>
-            {/* Markdown Editor Toolbar & Mode Switcher (Figma style) */}
-            <div className="flex items-center justify-between gap-2 mb-3 bg-[#F8F8F6] dark:bg-[#181816] p-1.5 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] overflow-x-auto">
+            {/* Markdown Editor Toolbar & Mode Switcher */}
+            <div
+              className={`flex items-center justify-between gap-2 overflow-x-auto transition-opacity duration-200 ${
+                isFocusMode
+                  ? 'mb-4 pb-2 border-b border-[#EAEAE5]/70 dark:border-[#2B2B28]/70 bg-transparent opacity-70 hover:opacity-100 focus-within:opacity-100'
+                  : 'mb-3 bg-[#F8F8F6] dark:bg-[#181816] p-1.5 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28]'
+              }`}
+            >
               {/* Markdown insertion tools */}
               <div className="flex items-center gap-0.5 shrink-0">
                 <button
@@ -1006,46 +1112,64 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 </button>
               </div>
 
-              {/* View mode toggle */}
-              <div className="flex items-center gap-1 bg-white dark:bg-[#1E1E1C] p-0.5 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] text-xs shrink-0">
-                <button
-                  onClick={() => setViewMode('edit')}
-                  title={t.editMarkdown}
-                  className={`px-2 py-1 rounded-[3px] flex items-center gap-1 transition-colors ${
-                    viewMode === 'edit'
-                      ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
-                      : 'text-[#777973] hover:text-[#282925]'
-                  }`}
-                >
-                  <Edit3 size={13} />
-                  <span className="hidden sm:inline">{t.editMarkdown}</span>
-                </button>
+              {/* View mode switcher & Focus Mode trigger */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 bg-white dark:bg-[#1E1E1C] p-0.5 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] text-xs shrink-0">
+                  <button
+                    onClick={() => setViewMode('edit')}
+                    title={t.editMarkdown}
+                    className={`px-2 py-1 rounded-[3px] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 ${
+                      viewMode === 'edit'
+                        ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
+                        : 'text-[#777973] hover:text-[#282925]'
+                    }`}
+                  >
+                    <Edit3 size={13} />
+                    <span className="hidden sm:inline">{t.editMarkdown}</span>
+                  </button>
 
-                <button
-                  onClick={() => setViewMode('split')}
-                  title={t.bothMarkdown}
-                  className={`hidden md:flex px-2 py-1 rounded-[3px] items-center gap-1 transition-colors ${
-                    viewMode === 'split'
-                      ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
-                      : 'text-[#777973] hover:text-[#282925]'
-                  }`}
-                >
-                  <Columns size={13} />
-                  <span>{t.bothMarkdown}</span>
-                </button>
+                  <button
+                    onClick={() => setViewMode('split')}
+                    title={t.bothMarkdown}
+                    className={`hidden md:flex px-2 py-1 rounded-[3px] items-center gap-1 transition-colors whitespace-nowrap shrink-0 ${
+                      viewMode === 'split'
+                        ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
+                        : 'text-[#777973] hover:text-[#282925]'
+                    }`}
+                  >
+                    <Columns size={13} />
+                    <span>{t.bothMarkdown}</span>
+                  </button>
 
-                <button
-                  onClick={() => setViewMode('preview')}
-                  title={t.previewMarkdown}
-                  className={`px-2 py-1 rounded-[3px] flex items-center gap-1 transition-colors ${
-                    viewMode === 'preview'
-                      ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
-                      : 'text-[#777973] hover:text-[#282925]'
-                  }`}
-                >
-                  <Eye size={13} />
-                  <span className="hidden sm:inline">{t.previewMarkdown}</span>
-                </button>
+                  <button
+                    onClick={() => setViewMode('preview')}
+                    title={t.previewMarkdown}
+                    className={`px-2 py-1 rounded-[3px] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 ${
+                      viewMode === 'preview'
+                        ? 'bg-[#EAEAE5] dark:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] font-medium'
+                        : 'text-[#777973] hover:text-[#282925]'
+                    }`}
+                  >
+                    <Eye size={13} />
+                    <span className="hidden sm:inline">{t.previewMarkdown}</span>
+                  </button>
+                </div>
+
+                {!isFocusMode && onSetFocusMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (viewMode === 'preview') setViewMode('edit');
+                      onSetFocusMode(true);
+                      setTimeout(() => textareaRef.current?.focus(), 20);
+                    }}
+                    title={lang === 'id' ? 'Masuk Mode Fokus bebas distraksi' : 'Enter distraction-free Focus Mode'}
+                    className="px-2.5 py-1 rounded-[4px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-white dark:bg-[#1E1E1C] hover:bg-[#EAEAE5] dark:hover:bg-[#252522] text-[#282925] dark:text-[#EDEDE8] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <Maximize2 size={13} />
+                    <span className="hidden sm:inline">{lang === 'id' ? 'Mode Fokus' : 'Focus Mode'}</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1094,7 +1218,11 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                       value={effectiveContent}
                       onChange={handleContentChange}
                       placeholder={t.writePlaceholder}
-                      className="w-full flex-1 min-h-[380px] p-4 text-sm font-mono leading-relaxed bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none resize-none"
+                      className={
+                        isFocusMode
+                          ? 'w-full flex-1 min-h-[62vh] px-1 py-2 text-[15px] sm:text-base font-sans leading-[1.75] bg-transparent border-0 text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none resize-none'
+                          : 'w-full flex-1 min-h-[380px] p-4 text-sm font-mono leading-relaxed bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] rounded-[6px] text-[#282925] dark:text-[#EDEDE8] placeholder-[#A1A29B] focus:outline-none resize-none'
+                      }
                     />
                   </div>
                 )}
@@ -1202,61 +1330,64 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               </div>
             </div>
 
-            {/* Document Word Stats Footer */}
-            <div className="mt-3 flex items-center justify-between text-[11px] text-[#A1A29B] font-mono">
-              <div className="flex items-center gap-2">
-                <span>{wordCount} kata</span>
-                <span>·</span>
-                <span>{charCount} karakter</span>
-                <span>·</span>
-                <span>~{readTimeMin} mnt baca</span>
-              </div>
-              <div className="hidden sm:block">
-                <span>Ketik <code className="bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] px-1 rounded">/</code> untuk perintah cepat</span>
-              </div>
-            </div>
-
-            {/* Hierarchical Sub-pages section */}
-            <div className="mt-10 pt-6 border-t border-[#EAEAE5] dark:border-[#2B2B28]">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#A1A29B]">
-                  {t.subPages} ({subPages.length})
-                </h4>
-                <button
-                  onClick={() => onCreateSubPage(doc.id)}
-                  className="flex items-center gap-1 text-xs text-[#282925] dark:text-[#EDEDE8] hover:underline font-medium cursor-pointer"
-                >
-                  <Plus size={13} />
-                  <span>{t.newSubDoc}</span>
-                </button>
-              </div>
-
-              {subPages.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                  {subPages.map((sub) => (
-                    <div
-                      key={sub.id}
-                      onClick={() => onSelectDoc(sub.id)}
-                      className="p-3 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] hover:bg-[#EAEAE5] cursor-pointer transition-colors group flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-base">{sub.icon || '📄'}</span>
-                        <span className="text-xs font-semibold text-[#282925] dark:text-[#EDEDE8] truncate">
-                          {sub.title || t.emptyTitle}
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-[#777973] group-hover:text-[#282925]">
-                        →
-                      </span>
-                    </div>
-                  ))}
+            {/* Document Word Stats Footer & Hierarchical Sub-pages (Hidden in Focus Mode) */}
+            {!isFocusMode && (
+              <>
+                <div className="mt-3 flex items-center justify-between text-[11px] text-[#A1A29B] font-mono tabular-nums">
+                  <div className="flex items-center gap-2">
+                    <span>{wordCount} kata</span>
+                    <span>·</span>
+                    <span>{charCount} karakter</span>
+                    <span>·</span>
+                    <span>~{readTimeMin} mnt baca</span>
+                  </div>
+                  <div className="hidden sm:block">
+                    <span>Ketik <code className="bg-[#F8F8F6] dark:bg-[#181816] border border-[#EAEAE5] dark:border-[#2B2B28] px-1 rounded">/</code> untuk perintah cepat</span>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-xs text-[#A1A29B] italic">
-                  {t.noSubPages}
-                </p>
-              )}
-            </div>
+
+                <div className="mt-10 pt-6 border-t border-[#EAEAE5] dark:border-[#2B2B28]">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#A1A29B]">
+                      {t.subPages} ({subPages.length})
+                    </h4>
+                    <button
+                      onClick={() => onCreateSubPage(doc.id)}
+                      className="flex items-center gap-1 text-xs text-[#282925] dark:text-[#EDEDE8] hover:underline font-medium cursor-pointer"
+                    >
+                      <Plus size={13} />
+                      <span>{t.newSubDoc}</span>
+                    </button>
+                  </div>
+
+                  {subPages.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {subPages.map((sub) => (
+                        <div
+                          key={sub.id}
+                          onClick={() => onSelectDoc(sub.id)}
+                          className="p-3 rounded-[6px] border border-[#EAEAE5] dark:border-[#2B2B28] bg-[#F8F8F6] dark:bg-[#181816] hover:bg-[#EAEAE5] cursor-pointer transition-colors group flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-base">{sub.icon || '📄'}</span>
+                            <span className="text-xs font-semibold text-[#282925] dark:text-[#EDEDE8] truncate">
+                              {sub.title || t.emptyTitle}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-[#777973] group-hover:text-[#282925]">
+                            →
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#A1A29B] italic">
+                      {t.noSubPages}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

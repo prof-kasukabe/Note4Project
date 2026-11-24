@@ -32,6 +32,7 @@ import {
   subscribeToCrossTab,
   getUserProfile,
   saveUserProfile,
+  loadSyncQueue,
   addToSyncQueue,
   clearSyncQueue
 } from './utils/storage';
@@ -45,7 +46,9 @@ import {
   saveDocToFirestore, 
   deleteDocFromFirestore, 
   seedFirestoreIfEmpty,
-  testFirestoreConnection
+  testFirestoreConnection,
+  fetchAllDocsFromFirestore,
+  WorkspaceSnapshotMeta
 } from './services/firestoreSync';
 import { encryptText, decryptText } from './utils/crypto';
 import { Sidebar } from './components/Sidebar';
@@ -149,6 +152,17 @@ export default function App() {
   // Mobile sidebar drawer state
   const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
 
+  // Distraction-free Focus Mode state for DocumentEditor
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [autoFocusOnType, setAutoFocusOnType] = useState<boolean>(() => {
+    const saved = localStorage.getItem('noverse_autofocus_on_type');
+    return saved === null ? true : saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('noverse_autofocus_on_type', String(autoFocusOnType));
+  }, [autoFocusOnType]);
+
   // Sync state
   const [syncState, setSyncState] = useState<SyncState>({
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
@@ -209,16 +223,202 @@ export default function App() {
     localStorage.setItem('noverse_lang_v1', lang);
   }, [lang]);
 
-  // Continuous background auto-sync polling to guarantee 100% database connectivity across devices
+  // Continuous background auto-sync & cross-site reconciliation refs
   const lastRevisionRef = useRef<number>(0);
   const syncDebounceTimerRef = useRef<number | null>(null);
   const isActivelyEditingRef = useRef<boolean>(false);
+  const docsRef = useRef<DocItem[]>(docs);
+  docsRef.current = docs;
+  const activeDocIdRef = useRef<string | null>(activeDocId);
+  activeDocIdRef.current = activeDocId;
+  const hasAuthoritativeCloudRef = useRef<boolean>(false);
+  const lastFocusSyncRef = useRef<number>(0);
+
+  // Track pending local mutations so stale server caches never clobber recent edits/deletes
+  const pendingUpsertsRef = useRef<Map<string, number>>((() => {
+    const map = new Map<string, number>();
+    loadSyncQueue().forEach((item) => {
+      if (item.type === 'upsert' && item.docId) {
+        map.set(item.docId, item.timestamp);
+      }
+    });
+    return map;
+  })());
+  const pendingDeletesRef = useRef<Map<string, number>>((() => {
+    const map = new Map<string, number>();
+    loadSyncQueue().forEach((item) => {
+      if (item.type === 'delete' && item.docId) {
+        map.set(item.docId, item.timestamp);
+      }
+    });
+    return map;
+  })());
+
+  const [importNotice, setImportNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showTransientNotice = (type: 'success' | 'error', message: string) => {
+    setImportNotice({ type, message });
+    window.setTimeout(() => {
+      setImportNotice((curr) => (curr?.message === message ? null : curr));
+    }, 3500);
+  };
+
+  // Compare two document arrays cleanly (order-independent) to avoid redundant state updates
+  const docsListChanged = (prev: DocItem[], next: DocItem[]): boolean => {
+    if (prev.length !== next.length) return true;
+    const prevById = new Map(prev.map((d) => [d.id, d]));
+    for (const n of next) {
+      const p = prevById.get(n.id);
+      if (!p) return true;
+      if (
+        p.updatedAt !== n.updatedAt ||
+        p.title !== n.title ||
+        p.status !== n.status ||
+        p.priority !== n.priority ||
+        p.isFavorite !== n.isFavorite ||
+        p.deadline !== n.deadline ||
+        p.content !== n.content ||
+        p.isEncrypted !== n.isEncrypted ||
+        p.icon !== n.icon ||
+        p.coverImage !== n.coverImage ||
+        p.reminderTime !== n.reminderTime
+      ) {
+        return true;
+      }
+      if (
+        JSON.stringify(p.projectData || null) !== JSON.stringify(n.projectData || null) ||
+        JSON.stringify(p.evaluationData || null) !== JSON.stringify(n.evaluationData || null) ||
+        JSON.stringify(p.productivityData || null) !== JSON.stringify(n.productivityData || null)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Authoritative timestamp-based merge across Firestore, local Express server, WebSocket, and tabs
+  const mergeDocsWithSource = (
+    localDocs: DocItem[],
+    incomingRawDocs: DocItem[],
+    options: {
+      source: 'firestore' | 'server' | 'collab' | 'local';
+      isAuthoritativeSnapshot?: boolean;
+      activeEditingDocId?: string | null;
+    }
+  ): { merged: DocItem[]; localOnlyOrNewerToPush: DocItem[]; removedDocIds: string[] } => {
+    const incomingDocs = migrateDocs(incomingRawDocs);
+    const localMap = new Map(localDocs.map((d) => [d.id, d]));
+    const incomingMap = new Map(incomingDocs.map((d) => [d.id, d]));
+    const allIds = new Set([...localMap.keys(), ...incomingMap.keys()]);
+
+    const merged: DocItem[] = [];
+    const localOnlyOrNewerToPush: DocItem[] = [];
+    const removedDocIds: string[] = [];
+
+    const canDropDeletedFromCloud =
+      options.source === 'firestore' &&
+      Boolean(options.isAuthoritativeSnapshot) &&
+      incomingDocs.length > 0;
+
+    for (const id of allIds) {
+      const loc = localMap.get(id);
+      const inc = incomingMap.get(id);
+
+      const pendingDeleteTs = pendingDeletesRef.current.get(id);
+      if (pendingDeleteTs) {
+        if (!inc && canDropDeletedFromCloud) {
+          pendingDeletesRef.current.delete(id);
+        } else if (!inc || (inc.updatedAt || 0) <= pendingDeleteTs + 2000) {
+          continue;
+        } else {
+          // Another device edited this doc AFTER our local delete
+          pendingDeletesRef.current.delete(id);
+        }
+      }
+
+      if (loc && inc) {
+        const isEditingThisDoc =
+          Boolean(options.activeEditingDocId) &&
+          id === options.activeEditingDocId &&
+          isActivelyEditingRef.current;
+
+        if (isEditingThisDoc) {
+          merged.push(loc);
+          continue;
+        }
+
+        const locUpdated = loc.updatedAt || 0;
+        const incUpdated = inc.updatedAt || 0;
+
+        if (incUpdated > locUpdated) {
+          merged.push(inc);
+          const pendingTs = pendingUpsertsRef.current.get(id);
+          if (pendingTs !== undefined && incUpdated >= pendingTs) {
+            pendingUpsertsRef.current.delete(id);
+          }
+        } else if (locUpdated > incUpdated) {
+          merged.push(loc);
+          if (options.source === 'firestore') {
+            localOnlyOrNewerToPush.push(loc);
+          }
+        } else {
+          // Equal timestamps: trust authoritative Firestore snapshot, otherwise preserve local
+          if (options.source === 'firestore' && options.isAuthoritativeSnapshot) {
+            merged.push(inc);
+            pendingUpsertsRef.current.delete(id);
+          } else {
+            merged.push(loc);
+          }
+        }
+      } else if (inc) {
+        merged.push(inc);
+      } else if (loc) {
+        const isSystemDoc = id === PRODUCTIVITY_DOC_ID || id === EVALUATION_DOC_ID;
+        const hasPendingLocalUpsert = pendingUpsertsRef.current.has(id);
+
+        if (canDropDeletedFromCloud && !isSystemDoc && !hasPendingLocalUpsert) {
+          // Doc was deleted on another device/site; propagate deletion here
+          removedDocIds.push(id);
+        } else {
+          merged.push(loc);
+          if (options.source === 'firestore' && options.isAuthoritativeSnapshot) {
+            localOnlyOrNewerToPush.push(loc);
+          }
+        }
+      }
+    }
+
+    // Preserve familiar ordering: incoming order first for existing docs, then newest updatedAt
+    merged.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    return { merged: migrateDocs(merged), localOnlyOrNewerToPush, removedDocIds };
+  };
+
+  const mirrorDocsToLocalServer = async (docsToMirror: DocItem[]) => {
+    try {
+      const res = await fetch('/api/docs/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docs: docsToMirror, replaceFull: true }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.revision) {
+          lastRevisionRef.current = data.revision;
+        }
+      }
+    } catch {
+      // Offline or Express unreachable; localStorage & Firestore remain valid
+    }
+  };
+
+  type SyncMutation = { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string; childIds?: string[] };
 
   // Trigger real-time Firestore sync & server backup
   const triggerServerSync = (
     currentDocs: DocItem[],
-    mutation?: { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string },
-    immediate = false
+    mutation?: SyncMutation,
+    immediate = false,
+    extraUpserts: DocItem[] = []
   ) => {
     if (syncDebounceTimerRef.current) {
       clearTimeout(syncDebounceTimerRef.current);
@@ -229,36 +429,79 @@ export default function App() {
       try {
         setSyncState((s) => ({ ...s, isSyncing: true }));
 
+        const firestoreTasks: Promise<unknown>[] = [];
+
         // 1. Sync to Cloud Firestore in real-time
         if (mutation) {
           if (mutation.type === 'upsert' && mutation.doc) {
-            saveDocToFirestore(mutation.doc).catch((e) => console.warn('Firestore upsert:', e));
+            const targetDoc = mutation.doc;
+            firestoreTasks.push(
+              saveDocToFirestore(targetDoc)
+                .then(() => {
+                  const pendingTs = pendingUpsertsRef.current.get(targetDoc.id);
+                  if (pendingTs !== undefined && pendingTs <= (targetDoc.updatedAt || 0)) {
+                    pendingUpsertsRef.current.delete(targetDoc.id);
+                  }
+                })
+                .catch((e) => console.warn('Firestore upsert:', e))
+            );
           } else if (mutation.type === 'delete' && mutation.docId) {
-            deleteDocFromFirestore(mutation.docId).catch((e) => console.warn('Firestore delete:', e));
+            const delId = mutation.docId;
+            const childIds = mutation.childIds || [];
+            firestoreTasks.push(
+              deleteDocFromFirestore(delId, childIds)
+                .then(() => {
+                  pendingDeletesRef.current.delete(delId);
+                  childIds.forEach((cid) => pendingDeletesRef.current.delete(cid));
+                })
+                .catch((e) => console.warn('Firestore delete:', e))
+            );
+          }
+          for (const extra of extraUpserts) {
+            firestoreTasks.push(
+              saveDocToFirestore(extra)
+                .then(() => {
+                  const pendingTs = pendingUpsertsRef.current.get(extra.id);
+                  if (pendingTs !== undefined && pendingTs <= (extra.updatedAt || 0)) {
+                    pendingUpsertsRef.current.delete(extra.id);
+                  }
+                })
+                .catch((e) => console.warn('Firestore extra upsert:', e))
+            );
           }
         } else if (currentDocs.length > 0) {
           currentDocs.forEach((d) => {
-            saveDocToFirestore(d).catch(() => {});
+            firestoreTasks.push(
+              saveDocToFirestore(d)
+                .then(() => {
+                  pendingUpsertsRef.current.delete(d.id);
+                })
+                .catch(() => {})
+            );
           });
         }
 
-        // 2. Server persistence backup & broadcast
-        const payload = mutation
-          ? { mutation }
-          : { docs: currentDocs, replaceFull: true };
+        // 2. Server persistence backup & broadcast (use full sync when multiple docs changed atomically)
+        const payload =
+          mutation && extraUpserts.length === 0
+            ? { mutation }
+            : { docs: currentDocs, replaceFull: true };
 
-        const res = await fetch('/api/docs/sync', {
+        const serverPromise = fetch('/api/docs/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+        }).then(async (res) => {
+          if (res.ok) {
+            const data = await res.json();
+            if (data.revision) {
+              lastRevisionRef.current = data.revision;
+            }
+          }
+          return res;
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.revision) {
-            lastRevisionRef.current = data.revision;
-          }
-        }
+        await Promise.allSettled([...firestoreTasks, serverPromise]);
 
         setSyncState((s) => ({
           ...s,
@@ -279,33 +522,122 @@ export default function App() {
     }
   };
 
-  // Real-time Cloud Firestore subscription + background server polling
+  // Two-way reconciliation: pull authoritative Firestore state, merge newest-first, flush pending local edits/deletes
+  const reconcileWithCloud = async (pushAllLocalIfNeeded = false) => {
+    try {
+      setSyncState((s) => ({ ...s, isSyncing: true }));
+
+      // Flush any queued deletions first so cloud does not re-send deleted items
+      const pendingDeleteIds = Array.from(pendingDeletesRef.current.keys());
+      if (pendingDeleteIds.length > 0) {
+        await Promise.allSettled(
+          pendingDeleteIds.map((delId) =>
+            deleteDocFromFirestore(delId).then(() => {
+              pendingDeletesRef.current.delete(delId);
+            })
+          )
+        );
+      }
+
+      const cloudDocs = await fetchAllDocsFromFirestore();
+      hasAuthoritativeCloudRef.current = true;
+
+      const currentLocal = docsRef.current;
+      const { merged, localOnlyOrNewerToPush } = mergeDocsWithSource(currentLocal, cloudDocs, {
+        source: 'firestore',
+        isAuthoritativeSnapshot: cloudDocs.length > 0,
+        activeEditingDocId: activeDocIdRef.current,
+      });
+
+      if (docsListChanged(currentLocal, merged)) {
+        docsRef.current = merged;
+        setDocs(merged);
+        saveStoredDocs(merged, false);
+      }
+
+      // Push any newer local edits (or full set when forced manually) to Firestore
+      const toPush = pushAllLocalIfNeeded
+        ? Array.from(
+            new Map(
+              [...localOnlyOrNewerToPush, ...merged.filter((d) => pendingUpsertsRef.current.has(d.id))].map(
+                (d) => [d.id, d]
+              )
+            ).values()
+          )
+        : localOnlyOrNewerToPush;
+
+      if (toPush.length > 0) {
+        await Promise.allSettled(
+          toPush.map((d) =>
+            saveDocToFirestore(d).then(() => {
+              pendingUpsertsRef.current.delete(d.id);
+            })
+          )
+        );
+      } else if (cloudDocs.length === 0 && merged.length > 0) {
+        await Promise.allSettled(merged.map((d) => saveDocToFirestore(d)));
+      }
+
+      await mirrorDocsToLocalServer(merged);
+      clearSyncQueue();
+
+      setSyncState((s) => ({
+        ...s,
+        isOnline: true,
+        isSyncing: false,
+        lastSyncedAt: Date.now(),
+        pendingCount: 0,
+      }));
+    } catch {
+      // Offline or Firestore temporarily unreachable: fall back cleanly
+      setSyncState((s) => ({ ...s, isSyncing: false }));
+    }
+  };
+
+  // Real-time Cloud Firestore subscription + background server polling + visibility re-sync
   useEffect(() => {
-    // 1. Test live Firestore connection and initialize seed if collection is empty
     testFirestoreConnection();
     seedFirestoreIfEmpty(INITIAL_DOCS);
 
-    // 2. Subscribe to real-time Cloud Firestore updates (active across all devices simultaneously)
+    // 1. Real-time Cloud Firestore listener (works across all devices and separate deployed sites)
     const unsubscribeFirestore = subscribeToWorkspace(
-      (rawRemoteDocs) => {
-        if (Array.isArray(rawRemoteDocs) && rawRemoteDocs.length > 0) {
-          const remoteDocs = migrateDocs(rawRemoteDocs);
-          setDocs((currentDocs) => {
-            if (isActivelyEditingRef.current && activeDocId) {
-              const activeLocal = currentDocs.find((d) => d.id === activeDocId);
-              const merged = remoteDocs.map((r) => {
-                if (r.id === activeDocId && activeLocal) {
-                  return { ...r, content: activeLocal.content, title: activeLocal.title };
-                }
-                return r;
-              });
-              saveStoredDocs(merged, false);
-              return merged;
-            }
-            saveStoredDocs(remoteDocs, false);
-            return remoteDocs;
-          });
+      (rawRemoteDocs: DocItem[], meta: WorkspaceSnapshotMeta) => {
+        if (!Array.isArray(rawRemoteDocs)) return;
+        const isAuthoritative = !meta.fromCache;
+        if (isAuthoritative) {
+          hasAuthoritativeCloudRef.current = true;
+        }
+        if (rawRemoteDocs.length === 0 && !isAuthoritative) return;
 
+        const prevLocal = docsRef.current;
+        const { merged, localOnlyOrNewerToPush } = mergeDocsWithSource(prevLocal, rawRemoteDocs, {
+          source: 'firestore',
+          isAuthoritativeSnapshot: isAuthoritative,
+          activeEditingDocId: activeDocIdRef.current,
+        });
+
+        const changed = docsListChanged(prevLocal, merged);
+        if (changed) {
+          docsRef.current = merged;
+          setDocs(merged);
+          saveStoredDocs(merged, false);
+          if (isAuthoritative) {
+            mirrorDocsToLocalServer(merged);
+          }
+        }
+
+        // If this device had newer offline/unsynced edits, push them up to Cloud Firestore now
+        if (isAuthoritative && localOnlyOrNewerToPush.length > 0) {
+          localOnlyOrNewerToPush.forEach((docToPush) => {
+            saveDocToFirestore(docToPush)
+              .then(() => {
+                pendingUpsertsRef.current.delete(docToPush.id);
+              })
+              .catch(() => {});
+          });
+        }
+
+        if (isAuthoritative) {
           setSyncState((prev) => ({
             ...prev,
             isOnline: true,
@@ -320,7 +652,7 @@ export default function App() {
       }
     );
 
-    // 3. Continuous server fallback polling every 2.5 seconds
+    // 2. Local Express fallback polling (never overwrites newer Firestore or local docs)
     const fetchServerFallback = async () => {
       try {
         const res = await fetch('/api/docs', { cache: 'no-store' });
@@ -329,22 +661,16 @@ export default function App() {
           if (Array.isArray(data.docs) && data.docs.length > 0) {
             if (lastRevisionRef.current === 0 || data.revision > lastRevisionRef.current) {
               lastRevisionRef.current = data.revision;
-              const serverList = migrateDocs(data.docs);
-              setDocs((currentDocs) => {
-                if (isActivelyEditingRef.current && activeDocId) {
-                  const activeLocal = currentDocs.find((d) => d.id === activeDocId);
-                  const updatedList = serverList.map((sDoc: DocItem) => {
-                    if (sDoc.id === activeDocId && activeLocal) {
-                      return { ...sDoc, content: activeLocal.content, title: activeLocal.title };
-                    }
-                    return sDoc;
-                  });
-                  saveStoredDocs(updatedList, false);
-                  return updatedList;
-                }
-                saveStoredDocs(serverList, false);
-                return serverList;
+              const prevLocal = docsRef.current;
+              const { merged } = mergeDocsWithSource(prevLocal, data.docs, {
+                source: 'server',
+                activeEditingDocId: activeDocIdRef.current,
               });
+              if (docsListChanged(prevLocal, merged)) {
+                docsRef.current = merged;
+                setDocs(merged);
+                saveStoredDocs(merged, false);
+              }
             }
           }
         }
@@ -352,47 +678,32 @@ export default function App() {
     };
 
     fetchServerFallback();
-    const interval = setInterval(fetchServerFallback, 2500);
+    const interval = setInterval(fetchServerFallback, 4000);
+
+    // 3. Reconcile immediately when switching back to this tab/app/device
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastFocusSyncRef.current < 2000) return;
+      lastFocusSyncRef.current = now;
+      reconcileWithCloud(false);
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
     return () => {
       unsubscribeFirestore();
       clearInterval(interval);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       if (syncDebounceTimerRef.current) clearTimeout(syncDebounceTimerRef.current);
     };
-  }, [activeDocId]);
+  }, []);
 
-  // Force instant manual synchronization across Firestore & local server
+  // Force instant manual two-way synchronization across Firestore & local server
   const handleManualSyncNow = async () => {
-    try {
-      setSyncState((s) => ({ ...s, isSyncing: true }));
-      
-      // Push all documents to Firestore
-      const firestorePromises = docs.map((d) => saveDocToFirestore(d));
-      await Promise.allSettled(firestorePromises);
-
-      // Push to server API
-      const res = await fetch('/api/docs/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docs, replaceFull: true }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.revision) {
-          lastRevisionRef.current = data.revision;
-        }
-      }
-
-      setSyncState((s) => ({
-        ...s,
-        isOnline: true,
-        isSyncing: false,
-        lastSyncedAt: Date.now(),
-        pendingCount: 0,
-      }));
-    } catch {
-      setSyncState((s) => ({ ...s, isSyncing: false }));
-    }
+    await reconcileWithCloud(true);
   };
 
   // Initialize CollabManager and Cross-Device WebSocket & Cross-Tab sync
@@ -403,26 +714,37 @@ export default function App() {
     collab.setCallbacks({
       onWorkspaceSync: (rawServerDocs) => {
         if (Array.isArray(rawServerDocs) && rawServerDocs.length > 0) {
-          const serverDocs = migrateDocs(rawServerDocs);
-          setDocs(serverDocs);
-          saveStoredDocs(serverDocs, false);
+          const prevLocal = docsRef.current;
+          const { merged } = mergeDocsWithSource(prevLocal, rawServerDocs, {
+            source: 'collab',
+            activeEditingDocId: activeDocIdRef.current,
+          });
+          if (docsListChanged(prevLocal, merged)) {
+            docsRef.current = merged;
+            setDocs(merged);
+            saveStoredDocs(merged, false);
+          }
           setSyncState((prev) => ({ ...prev, isSyncing: false, lastSyncedAt: Date.now() }));
         }
       },
       onDocUpdated: (rawUpdatedDoc) => {
         const [updatedDoc] = migrateDocs([rawUpdatedDoc]);
-        setDocs((prev) => {
-          const idx = prev.findIndex((d) => d.id === updatedDoc.id);
-          const next = idx >= 0
-            ? prev.map((d) => (d.id === updatedDoc.id ? { ...d, ...updatedDoc } : d))
-            : [updatedDoc, ...prev];
-          saveStoredDocs(next, false);
-          return next;
+        const prevLocal = docsRef.current;
+        const { merged } = mergeDocsWithSource(prevLocal, [updatedDoc], {
+          source: 'collab',
+          activeEditingDocId: activeDocIdRef.current,
         });
+        if (docsListChanged(prevLocal, merged)) {
+          docsRef.current = merged;
+          setDocs(merged);
+          saveStoredDocs(merged, false);
+        }
       },
       onDocDeleted: (deletedDocId) => {
+        pendingDeletesRef.current.set(deletedDocId, Date.now());
         setDocs((prev) => {
           const next = prev.filter((d) => d.id !== deletedDocId && d.parentId !== deletedDocId);
+          docsRef.current = next;
           saveStoredDocs(next, false);
           return next;
         });
@@ -432,12 +754,14 @@ export default function App() {
       },
       onDocChange: (docId, change: unknown) => {
         setDocs((prevDocs) => {
-          return prevDocs.map((d) => {
+          const next = prevDocs.map((d) => {
             if (d.id === docId && typeof change === 'string') {
               return { ...d, content: change, updatedAt: Date.now() };
             }
             return d;
           });
+          docsRef.current = next;
+          return next;
         });
       },
       onStatusChange: (connected) => {
@@ -448,17 +772,24 @@ export default function App() {
     // Listen for cross-tab local updates
     const unsubscribeCrossTab = subscribeToCrossTab(() => {
       const reloaded = loadStoredDocs();
-      if (reloaded) setDocs(reloaded);
+      if (reloaded && reloaded.length > 0) {
+        const prevLocal = docsRef.current;
+        const { merged } = mergeDocsWithSource(prevLocal, reloaded, {
+          source: 'local',
+          activeEditingDocId: activeDocIdRef.current,
+        });
+        if (docsListChanged(prevLocal, merged)) {
+          docsRef.current = merged;
+          setDocs(merged);
+        }
+      }
     });
 
-    // Listen for browser online/offline events
+    // Listen for browser online/offline events — flush offline queue & reconcile cloud
     const handleOnline = () => {
       setSyncState((prev) => ({ ...prev, isOnline: true, isSyncing: true }));
-      clearSyncQueue();
       collab.requestInitialSync();
-      setTimeout(() => {
-        setSyncState((prev) => ({ ...prev, isSyncing: false, pendingCount: 0, lastSyncedAt: Date.now() }));
-      }, 800);
+      reconcileWithCloud(true);
     };
 
     const handleOffline = () => {
@@ -484,24 +815,49 @@ export default function App() {
     }
   }, [activeDocId]);
 
-  // Save docs to localStorage & broadcast to all devices via WebSocket & server REST API
+  // Save docs to localStorage & broadcast to all devices via WebSocket, Express, & Cloud Firestore
   const updateDocs = (
     updater: (prev: DocItem[]) => DocItem[], 
     broadcastDocId?: string, 
     changePayload?: unknown,
-    mutation?: { type: 'upsert' | 'delete'; doc?: DocItem; docId?: string },
-    immediateSync = false
+    mutation?: SyncMutation,
+    immediateSync = false,
+    extraUpserts: DocItem[] = []
   ) => {
+    const nowTs = Date.now();
+    if (mutation) {
+      if (mutation.type === 'upsert' && mutation.doc) {
+        pendingUpsertsRef.current.set(mutation.doc.id, mutation.doc.updatedAt || nowTs);
+        pendingDeletesRef.current.delete(mutation.doc.id);
+      } else if (mutation.type === 'delete' && mutation.docId) {
+        pendingDeletesRef.current.set(mutation.docId, nowTs);
+        pendingUpsertsRef.current.delete(mutation.docId);
+        mutation.childIds?.forEach((cid) => {
+          pendingDeletesRef.current.set(cid, nowTs);
+          pendingUpsertsRef.current.delete(cid);
+        });
+      }
+    }
+    extraUpserts.forEach((extra) => {
+      pendingUpsertsRef.current.set(extra.id, extra.updatedAt || nowTs);
+      pendingDeletesRef.current.delete(extra.id);
+    });
+
     setDocs((prev) => {
       const next = updater(prev);
+      docsRef.current = next;
       saveStoredDocs(next);
 
-      if (!syncState.isOnline) {
+      const isBrowserOnline = typeof navigator !== 'undefined' ? navigator.onLine : syncState.isOnline;
+      if (!isBrowserOnline) {
         addToSyncQueue({
-          type: 'upsert',
-          docId: broadcastDocId || '',
+          type: mutation?.type === 'delete' ? 'delete' : 'upsert',
+          docId: mutation?.docId || mutation?.doc?.id || broadcastDocId || '',
         });
-        setSyncState((s) => ({ ...s, pendingCount: s.pendingCount + 1 }));
+        extraUpserts.forEach((extra) => {
+          addToSyncQueue({ type: 'upsert', docId: extra.id });
+        });
+        setSyncState((s) => ({ ...s, pendingCount: s.pendingCount + 1 + extraUpserts.length }));
       } else {
         if (broadcastDocId && changePayload !== undefined) {
           collabManagerRef.current?.sendDocChange(broadcastDocId, changePayload);
@@ -513,10 +869,13 @@ export default function App() {
             collabManagerRef.current?.sendDocDelete(mutation.docId);
           }
         }
+        extraUpserts.forEach((extra) => {
+          collabManagerRef.current?.sendDocUpsert(extra);
+        });
       }
 
-      // Automatically trigger server synchronization
-      triggerServerSync(next, mutation, immediateSync);
+      // Automatically trigger Cloud Firestore + Express synchronization
+      triggerServerSync(next, mutation, immediateSync, extraUpserts);
       return next;
     });
   };
@@ -585,6 +944,19 @@ export default function App() {
     return visibleDocs.find((d) => d.id === activeDocId) || visibleDocs[0] || null;
   }, [visibleDocs, activeDocId]);
 
+  const activeDocLocked = Boolean(
+    activeDoc?.isEncrypted && !unlockedDocs[activeDoc.id] && !isVaultUnlocked
+  );
+  const isEditorFocusActive =
+    activeView === 'editor' && Boolean(activeDoc) && !activeDocLocked && isFocusMode;
+
+  // Auto-exit Focus Mode when navigating away from DocumentEditor or when active document locks
+  useEffect(() => {
+    if (activeView !== 'editor' || !activeDoc || activeDocLocked) {
+      setIsFocusMode(false);
+    }
+  }, [activeView, activeDoc, activeDocLocked]);
+
   // Child sub-pages for active doc
   const subPages = useMemo(() => {
     if (!activeDoc) return [];
@@ -596,6 +968,7 @@ export default function App() {
     setActiveDocId(id);
     setActiveView('editor');
     setIsOpenMobileSidebar(false);
+    setIsFocusMode(false);
   };
 
   const handleCreateDoc = (parentId: string | null = null, datePreset?: string) => {
@@ -647,18 +1020,35 @@ export default function App() {
     setIsOpenMobileSidebar(false);
   };
 
+  const collectDescendantIds = (rootId: string, list: DocItem[]): string[] => {
+    const result: string[] = [];
+    const queue = [rootId];
+    while (queue.length > 0) {
+      const parent = queue.shift()!;
+      for (const item of list) {
+        if (item.parentId === parent && !result.includes(item.id)) {
+          result.push(item.id);
+          queue.push(item.id);
+        }
+      }
+    }
+    return result;
+  };
+
   const handleDeleteDoc = (id: string) => {
     const confirmMsg = translations[lang].confirmDelete;
     if (window.confirm(confirmMsg)) {
+      const childIds = collectDescendantIds(id, docsRef.current);
+      const allDeleted = new Set([id, ...childIds]);
       updateDocs(
-        (prev) => prev.filter((d) => d.id !== id && d.parentId !== id),
+        (prev) => prev.filter((d) => !allDeleted.has(d.id)),
         id,
         undefined,
-        { type: 'delete', docId: id },
+        { type: 'delete', docId: id, childIds },
         true
       );
-      if (activeDocId === id) {
-        const remaining = visibleDocs.filter((d) => d.id !== id && d.parentId !== id);
+      if (activeDocId && allDeleted.has(activeDocId)) {
+        const remaining = visibleDocs.filter((d) => !allDeleted.has(d.id));
         setActiveDocId(remaining[0]?.id || null);
       }
     }
@@ -697,18 +1087,26 @@ export default function App() {
   };
 
   const handleToggleFavorite = (id: string) => {
+    const target = docs.find((d) => d.id === id);
+    if (!target) return;
+    const now = Date.now();
+    const updatedTarget: DocItem = {
+      ...target,
+      isFavorite: !target.isFavorite,
+      updatedAt: now,
+      lastModifiedBy: {
+        userId: userProfile.userId,
+        name: userProfile.name,
+        color: userProfile.color,
+        timestamp: now,
+        action: !target.isFavorite ? 'Menambahkan ke favorit' : 'Menghapus dari favorit',
+      },
+    };
     updateDocs(
-      (prev) =>
-        prev.map((d) => {
-          if (d.id === id) {
-            const updated = { ...d, isFavorite: !d.isFavorite };
-            return updated;
-          }
-          return d;
-        }),
+      (prev) => prev.map((d) => (d.id === id ? updatedTarget : d)),
+      id,
       undefined,
-      undefined,
-      undefined,
+      { type: 'upsert', doc: updatedTarget },
       true
     );
   };
@@ -717,6 +1115,83 @@ export default function App() {
     '🔒 Dokumen ini terkunci dengan enkripsi E2EE. Masukkan password untuk membaca dan menyunting.';
 
   const activeTypingTimerRef = useRef<number | null>(null);
+
+  const STATUS_TO_LABEL: Record<DocItem['status'], string> = {
+    not_started: 'Belum mulai',
+    in_progress: 'Dikerjakan',
+    completed: 'Selesai',
+    archived: 'Diarsipkan',
+  };
+
+  const PRIORITY_TO_LABEL_ID: Record<DocItem['priority'], 'Tinggi' | 'Sedang' | 'Rendah'> = {
+    high: 'Tinggi',
+    medium: 'Sedang',
+    low: 'Rendah',
+  };
+
+  const FAVORITE_PROJECT_IDS = new Set([
+    WEB_PROJECT_DOC_ID,
+    MOBILE_PROJECT_DOC_ID,
+    DESIGN_PROJECT_DOC_ID,
+  ]);
+
+  // Helper: synchronize renamed doc titles into Productivity & Calendar labels
+  const syncDocTitlesToProductivity = (
+    list: DocItem[],
+    renamedDocs: Array<{ id: string; title: string }>,
+    now: number,
+    lastModifiedBy: DocItem['lastModifiedBy']
+  ): DocItem | null => {
+    if (renamedDocs.length === 0) return null;
+    const titleByDocId = new Map(renamedDocs.map((r) => [r.id, r.title]));
+    const existingProd = list.find((d) => d.id === PRODUCTIVITY_DOC_ID);
+    const curProd = existingProd?.productivityData || DEFAULT_PRODUCTIVITY_DATA;
+    let changed = false;
+
+    const nextActivities = curProd.activities.map((act) => {
+      if (act.linkedDocId && titleByDocId.has(act.linkedDocId)) {
+        const nextName = titleByDocId.get(act.linkedDocId)!;
+        if (act.projectName !== nextName) {
+          changed = true;
+          return { ...act, projectName: nextName, updatedAt: now };
+        }
+      }
+      return act;
+    });
+
+    const nextDayLabels = curProd.dayLabels.map((lbl) => {
+      if (lbl.linkedDocId && titleByDocId.has(lbl.linkedDocId)) {
+        const nextName = titleByDocId.get(lbl.linkedDocId)!;
+        if (lbl.projectName !== nextName) {
+          changed = true;
+          return { ...lbl, projectName: nextName, updatedAt: now };
+        }
+      }
+      return lbl;
+    });
+
+    if (!changed) return null;
+
+    return {
+      id: PRODUCTIVITY_DOC_ID,
+      title: 'Produktivitas Workspace',
+      icon: '⚡',
+      parentId: null,
+      content: '',
+      tags: ['Produktif'],
+      status: 'in_progress',
+      priority: 'medium',
+      createdAt: existingProd?.createdAt || now,
+      updatedAt: now,
+      productivityData: {
+        ...curProd,
+        activities: nextActivities,
+        dayLabels: nextDayLabels,
+        updatedAt: now,
+      },
+      lastModifiedBy,
+    };
+  };
 
   const handleUpdateActiveDoc = (updated: Partial<DocItem>) => {
     if (!activeDocId) return;
@@ -743,7 +1218,7 @@ export default function App() {
       encryptEditTimersRef.current[activeDocId] = window.setTimeout(async () => {
         try {
           const payload = await encryptText(nextPlaintext, sessionPass);
-          const latestDoc = docs.find((d) => d.id === targetDocId) || current;
+          const latestDoc = docsRef.current.find((d) => d.id === targetDocId) || current;
           const nowTs = Date.now();
           const reEncryptedDoc: DocItem = {
             ...latestDoc,
@@ -796,19 +1271,40 @@ export default function App() {
       ? `Mengubah status jadi ${updated.status === 'completed' ? 'Selesai' : updated.status === 'in_progress' ? 'Sedang Dikerjakan' : updated.status === 'archived' ? 'Arsip' : 'Belum Mulai'}`
       : 'Menyunting dokumen';
 
+    const lastModifiedBy = {
+      userId: userProfile.userId,
+      name: userProfile.name,
+      color: userProfile.color,
+      timestamp: now,
+      action: actionText,
+    };
+
+    let syncedProjectData = current.projectData;
+    if (current.projectData) {
+      syncedProjectData = {
+        ...current.projectData,
+        ...(updated.status ? { statusLabel: STATUS_TO_LABEL[updated.status] || current.projectData.statusLabel } : {}),
+        ...(updated.priority ? { priorityLabel: PRIORITY_TO_LABEL_ID[updated.priority] || current.projectData.priorityLabel } : {}),
+        ...(updated.deadline !== undefined
+          ? { deadlineLabel: formatProjectDeadline(updated.deadline, current.projectData.deadlineLabel) }
+          : {}),
+      };
+    }
+
     const merged: DocItem = {
       ...current,
       ...updated,
-      lastModifiedBy: {
-        userId: userProfile.userId,
-        name: userProfile.name,
-        color: userProfile.color,
-        timestamp: now,
-        action: actionText,
-      },
+      ...(syncedProjectData ? { projectData: syncedProjectData } : {}),
+      lastModifiedBy,
       statusHistory: newHistory,
       updatedAt: now,
     };
+
+    // If editing metadata of a Favorite Project from DocumentEditor, route through full Favorite Project sync
+    if (FAVORITE_PROJECT_IDS.has(activeDocId) && updated.content === undefined && !current.isEncrypted) {
+      handleSaveFavoriteProjectDoc(merged);
+      return;
+    }
 
     const isTypingContent = updated.content !== undefined;
     if (isTypingContent) {
@@ -819,33 +1315,56 @@ export default function App() {
       }, 1500);
     }
 
+    const extraUpserts: DocItem[] = [];
+    if (updated.title !== undefined && updated.title !== current.title) {
+      const prodSyncDoc = syncDocTitlesToProductivity(
+        docs,
+        [{ id: current.id, title: updated.title }],
+        now,
+        lastModifiedBy
+      );
+      if (prodSyncDoc) extraUpserts.push(prodSyncDoc);
+
+      const existingEval = docs.find((d) => d.id === EVALUATION_DOC_ID);
+      if (existingEval?.evaluationData) {
+        const hasLinkedEval = existingEval.evaluationData.projects.some(
+          (p) => p.linkedDocId === current.id
+        );
+        if (hasLinkedEval) {
+          extraUpserts.push({
+            ...existingEval,
+            updatedAt: now,
+            evaluationData: {
+              ...existingEval.evaluationData,
+              projects: existingEval.evaluationData.projects.map((p) =>
+                p.linkedDocId === current.id ? { ...p, name: updated.title! } : p
+              ),
+              issues: existingEval.evaluationData.issues.map((iss) =>
+                iss.projectName === current.title ? { ...iss, projectName: updated.title! } : iss
+              ),
+            },
+            lastModifiedBy,
+          });
+        }
+      }
+    }
+
     updateDocs(
-      (prev) => prev.map((d) => (d.id === activeDocId ? merged : d)),
+      (prev) => {
+        let next = prev.map((d) => (d.id === activeDocId ? merged : d));
+        extraUpserts.forEach((extra) => {
+          const exists = next.some((d) => d.id === extra.id);
+          next = exists ? next.map((d) => (d.id === extra.id ? extra : d)) : [...next, extra];
+        });
+        return next;
+      },
       activeDocId,
       updated.content,
       { type: 'upsert', doc: merged },
-      !isTypingContent // Immediate sync for cover, icon, tags, status; debounced for typing
+      !isTypingContent,
+      extraUpserts
     );
   };
-
-  const STATUS_TO_LABEL: Record<DocItem['status'], string> = {
-    not_started: 'Belum mulai',
-    in_progress: 'Dikerjakan',
-    completed: 'Selesai',
-    archived: 'Diarsipkan',
-  };
-
-  const PRIORITY_TO_LABEL_ID: Record<DocItem['priority'], 'Tinggi' | 'Sedang' | 'Rendah'> = {
-    high: 'Tinggi',
-    medium: 'Sedang',
-    low: 'Rendah',
-  };
-
-  const FAVORITE_PROJECT_IDS = new Set([
-    WEB_PROJECT_DOC_ID,
-    MOBILE_PROJECT_DOC_ID,
-    DESIGN_PROJECT_DOC_ID,
-  ]);
 
   const handleUpdateDocById = (id: string, updated: Partial<DocItem>) => {
     const current = docs.find((d) => d.id === id);
@@ -874,13 +1393,23 @@ export default function App() {
       ? `Mengubah status jadi ${updated.status === 'completed' ? 'Selesai' : updated.status === 'in_progress' ? 'Sedang Dikerjakan' : updated.status === 'archived' ? 'Arsip' : 'Belum Mulai'}`
       : 'Memperbarui dokumen';
 
+    const lastModifiedBy = {
+      userId: userProfile.userId,
+      name: userProfile.name,
+      color: userProfile.color,
+      timestamp: now,
+      action: actionText,
+    };
+
     let syncedProjectData = current.projectData;
     if (current.projectData) {
       syncedProjectData = {
         ...current.projectData,
         ...(updated.status ? { statusLabel: STATUS_TO_LABEL[updated.status] || current.projectData.statusLabel } : {}),
         ...(updated.priority ? { priorityLabel: PRIORITY_TO_LABEL_ID[updated.priority] || current.projectData.priorityLabel } : {}),
-        ...(updated.deadline ? { deadlineLabel: formatProjectDeadline(updated.deadline, current.projectData.deadlineLabel) } : {}),
+        ...(updated.deadline !== undefined
+          ? { deadlineLabel: formatProjectDeadline(updated.deadline, current.projectData.deadlineLabel) }
+          : {}),
       };
     }
 
@@ -888,13 +1417,7 @@ export default function App() {
       ...current,
       ...updated,
       ...(syncedProjectData ? { projectData: syncedProjectData } : {}),
-      lastModifiedBy: {
-        userId: userProfile.userId,
-        name: userProfile.name,
-        color: userProfile.color,
-        timestamp: now,
-        action: actionText,
-      },
+      lastModifiedBy,
       statusHistory: newHistory,
       updatedAt: now,
     };
@@ -904,18 +1427,45 @@ export default function App() {
       return;
     }
 
+    const extraUpserts: DocItem[] = [];
+    if (updated.title !== undefined && updated.title !== current.title) {
+      const prodSyncDoc = syncDocTitlesToProductivity(
+        docs,
+        [{ id: current.id, title: updated.title }],
+        now,
+        lastModifiedBy
+      );
+      if (prodSyncDoc) extraUpserts.push(prodSyncDoc);
+    }
+
     updateDocs(
-      (prev) => prev.map((d) => (d.id === id ? merged : d)),
+      (prev) => {
+        let next = prev.map((d) => (d.id === id ? merged : d));
+        extraUpserts.forEach((extra) => {
+          const exists = next.some((d) => d.id === extra.id);
+          next = exists ? next.map((d) => (d.id === extra.id ? extra : d)) : [...next, extra];
+        });
+        return next;
+      },
       id,
       updated.content,
       { type: 'upsert', doc: merged },
-      true // Immediate sync for database view updates
+      true,
+      extraUpserts
     );
   };
 
   const handleUpdateEvaluation = (updatedEval: EvaluationData, actionLabel?: string) => {
     const now = Date.now();
     const existing = docs.find((d) => d.id === EVALUATION_DOC_ID);
+    const lastModifiedBy = {
+      userId: userProfile.userId,
+      name: userProfile.name,
+      color: userProfile.color,
+      timestamp: now,
+      action: actionLabel || 'Memperbarui data evaluasi',
+    };
+
     const mergedEvalDoc: DocItem = {
       id: EVALUATION_DOC_ID,
       title: 'Evaluasi Workspace',
@@ -928,67 +1478,64 @@ export default function App() {
       createdAt: existing?.createdAt || now,
       updatedAt: now,
       evaluationData: updatedEval,
-      lastModifiedBy: {
-        userId: userProfile.userId,
-        name: userProfile.name,
-        color: userProfile.color,
-        timestamp: now,
-        action: actionLabel || 'Memperbarui data evaluasi',
-      },
+      lastModifiedBy,
     };
 
-    // Bi-directional sync back to linked favorite project docs (title & status)
+    // Bi-directional sync back to linked project docs (title, status, & markdown content)
     const syncedLinkedDocs: DocItem[] = [];
+    const renamedDocs: Array<{ id: string; title: string }> = [];
+
     for (const ep of updatedEval.projects) {
-      if (ep.linkedDocId && FAVORITE_PROJECT_IDS.has(ep.linkedDocId)) {
-        const target = docs.find((d) => d.id === ep.linkedDocId);
-        if (target && (target.status !== ep.status || target.title !== ep.name)) {
-          const updatedTarget: DocItem = {
-            ...target,
-            title: ep.name,
-            status: ep.status,
-            updatedAt: now,
-            projectData: target.projectData
-              ? { ...target.projectData, statusLabel: STATUS_TO_LABEL[ep.status] }
-              : target.projectData,
-            lastModifiedBy: {
-              userId: userProfile.userId,
-              name: userProfile.name,
-              color: userProfile.color,
-              timestamp: now,
-              action: `Sinkronisasi dari Evaluasi: ${ep.name}`,
-            },
-          };
-          syncedLinkedDocs.push(updatedTarget);
+      if (!ep.linkedDocId) continue;
+      const target = docs.find((d) => d.id === ep.linkedDocId);
+      if (target && (target.status !== ep.status || target.title !== ep.name)) {
+        if (target.title !== ep.name) {
+          renamedDocs.push({ id: target.id, title: ep.name });
         }
+        const nextProjectData = target.projectData
+          ? { ...target.projectData, statusLabel: STATUS_TO_LABEL[ep.status] }
+          : target.projectData;
+        const nextContent =
+          nextProjectData && !target.isEncrypted
+            ? buildProjectMarkdownContent(ep.name, target.icon, target.deadline, nextProjectData)
+            : target.content;
+
+        syncedLinkedDocs.push({
+          ...target,
+          title: ep.name,
+          status: ep.status,
+          content: nextContent,
+          updatedAt: now,
+          projectData: nextProjectData,
+          lastModifiedBy: {
+            ...lastModifiedBy,
+            action: `Sinkronisasi dari Evaluasi: ${ep.name}`,
+          },
+        });
       }
     }
+
+    const syncedProdDoc = syncDocTitlesToProductivity(docs, renamedDocs, now, lastModifiedBy);
+    const extraUpserts: DocItem[] = [...syncedLinkedDocs];
+    if (syncedProdDoc) extraUpserts.push(syncedProdDoc);
 
     updateDocs(
       (prev) => {
         let next = prev.some((d) => d.id === EVALUATION_DOC_ID)
           ? prev.map((d) => (d.id === EVALUATION_DOC_ID ? mergedEvalDoc : d))
           : [...prev, mergedEvalDoc];
-        for (const ld of syncedLinkedDocs) {
-          next = next.map((d) => (d.id === ld.id ? ld : d));
+        for (const extra of extraUpserts) {
+          const exists = next.some((d) => d.id === extra.id);
+          next = exists ? next.map((d) => (d.id === extra.id ? extra : d)) : [...next, extra];
         }
         return next;
       },
       EVALUATION_DOC_ID,
       undefined,
       { type: 'upsert', doc: mergedEvalDoc },
-      true
+      true,
+      extraUpserts
     );
-
-    syncedLinkedDocs.forEach((ld) => {
-      collabManagerRef.current?.sendDocUpsert(ld);
-      saveDocToFirestore(ld).catch(() => {});
-      fetch('/api/docs/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mutation: { type: 'upsert', doc: ld } }),
-      }).catch(() => {});
-    });
   };
 
   const handleSaveFavoriteProjectDoc = (updatedDoc: DocItem) => {
@@ -1016,8 +1563,20 @@ export default function App() {
       nextHistory = [changeLog, ...nextHistory].slice(0, 50);
     }
 
+    const rebuiltContent =
+      updatedDoc.projectData && !updatedDoc.isEncrypted
+        ? buildProjectMarkdownContent(
+            updatedDoc.title,
+            updatedDoc.icon,
+            updatedDoc.deadline,
+            updatedDoc.projectData
+          )
+        : updatedDoc.content;
+
     const finalProjectDoc: DocItem = {
       ...updatedDoc,
+      content: rebuiltContent,
+      updatedAt: updatedDoc.updatedAt || now,
       statusHistory: nextHistory,
     };
 
@@ -1111,25 +1670,49 @@ export default function App() {
     const syncedActivities = currentProdData.activities.map((act) => {
       if (act.linkedDocId !== finalProjectDoc.id) return act;
       let nextAct = act;
+      let actChanged = false;
       if (act.projectName !== finalProjectDoc.title) {
         nextAct = { ...nextAct, projectName: finalProjectDoc.title };
-        prodChanged = true;
+        actChanged = true;
       }
-      const matchedTask =
-        (act.linkedTaskId ? taskById.get(act.linkedTaskId) : undefined) ||
-        taskByTitle.get(act.title.toLowerCase());
+      const matchedById = act.linkedTaskId ? taskById.get(act.linkedTaskId) : undefined;
+      const matchedTask = matchedById || taskByTitle.get(act.title.toLowerCase());
       if (matchedTask) {
-        const expectedStatus = matchedTask.completed ? 'completed' : act.status === 'completed' ? 'in_progress' : act.status;
+        const expectedStatus = matchedTask.completed
+          ? 'completed'
+          : act.status === 'completed'
+          ? 'in_progress'
+          : act.status;
         if (expectedStatus !== nextAct.status) {
           nextAct = {
             ...nextAct,
             status: expectedStatus,
             durationMinutes:
               expectedStatus === 'completed' && nextAct.durationMinutes === 0 ? 30 : nextAct.durationMinutes,
-            updatedAt: now,
           };
-          prodChanged = true;
+          actChanged = true;
         }
+        // Sync task title & assignee edits when linked by taskId
+        if (matchedById && matchedById.title !== nextAct.title) {
+          nextAct = { ...nextAct, title: matchedById.title };
+          actChanged = true;
+        }
+        if (matchedById && matchedById.assignee && nextAct.assignee !== 'Saya' && matchedById.assignee !== nextAct.assignee) {
+          nextAct = { ...nextAct, assignee: matchedById.assignee };
+          actChanged = true;
+        }
+        if (!nextAct.linkedTaskId) {
+          nextAct = { ...nextAct, linkedTaskId: matchedTask.id };
+          actChanged = true;
+        }
+      } else if (act.linkedTaskId && finalProjectDoc.projectData) {
+        // Task was removed from project: clear dangling taskId while preserving logged activity
+        nextAct = { ...nextAct, linkedTaskId: undefined };
+        actChanged = true;
+      }
+      if (actChanged) {
+        nextAct = { ...nextAct, updatedAt: now };
+        prodChanged = true;
       }
       return nextAct;
     });
@@ -1164,51 +1747,28 @@ export default function App() {
         }
       : null;
 
+    const extraUpserts: DocItem[] = [];
+    if (mergedEvalDoc) extraUpserts.push(mergedEvalDoc);
+    if (mergedProdDoc) extraUpserts.push(mergedProdDoc);
+
     updateDocs(
       (prev) => {
         const hasProject = prev.some((d) => d.id === finalProjectDoc.id);
         let next = hasProject
           ? prev.map((d) => (d.id === finalProjectDoc.id ? finalProjectDoc : d))
           : [finalProjectDoc, ...prev];
-        if (mergedEvalDoc) {
-          const hasEval = next.some((d) => d.id === EVALUATION_DOC_ID);
-          next = hasEval
-            ? next.map((d) => (d.id === EVALUATION_DOC_ID ? mergedEvalDoc : d))
-            : [...next, mergedEvalDoc];
-        }
-        if (mergedProdDoc) {
-          const hasProd = next.some((d) => d.id === PRODUCTIVITY_DOC_ID);
-          next = hasProd
-            ? next.map((d) => (d.id === PRODUCTIVITY_DOC_ID ? mergedProdDoc : d))
-            : [...next, mergedProdDoc];
+        for (const extra of extraUpserts) {
+          const exists = next.some((d) => d.id === extra.id);
+          next = exists ? next.map((d) => (d.id === extra.id ? extra : d)) : [...next, extra];
         }
         return next;
       },
       finalProjectDoc.id,
       finalProjectDoc.content,
       { type: 'upsert', doc: finalProjectDoc },
-      true
+      true,
+      extraUpserts
     );
-
-    if (mergedEvalDoc) {
-      collabManagerRef.current?.sendDocUpsert(mergedEvalDoc);
-      saveDocToFirestore(mergedEvalDoc).catch(() => {});
-      fetch('/api/docs/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mutation: { type: 'upsert', doc: mergedEvalDoc } }),
-      }).catch(() => {});
-    }
-
-    if (mergedProdDoc) {
-      collabManagerRef.current?.sendDocUpsert(mergedProdDoc);
-      saveDocToFirestore(mergedProdDoc).catch(() => {});
-      fetch('/api/docs/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mutation: { type: 'upsert', doc: mergedProdDoc } }),
-      }).catch(() => {});
-    }
   };
 
   const handleUpdateProductivity = (
@@ -1249,16 +1809,27 @@ export default function App() {
         const matchedIdx = pd.tasks.findIndex(
           (t) =>
             (taskSync.taskId && t.id === taskSync.taskId) ||
+            (taskSync.previousTitle && t.title.toLowerCase() === taskSync.previousTitle.toLowerCase()) ||
             t.title.toLowerCase() === taskSync.taskTitle.toLowerCase()
         );
 
         let nextTasks = [...pd.tasks];
         let changed = false;
         if (matchedIdx >= 0) {
-          if (nextTasks[matchedIdx].completed !== taskSync.completed) {
+          const existingTask = nextTasks[matchedIdx];
+          const nextTitle = taskSync.taskTitle || existingTask.title;
+          const nextAssignee = taskSync.assignee || existingTask.assignee;
+          if (
+            existingTask.completed !== taskSync.completed ||
+            existingTask.title !== nextTitle ||
+            existingTask.assignee !== nextAssignee
+          ) {
             nextTasks[matchedIdx] = {
-              ...nextTasks[matchedIdx],
+              ...existingTask,
+              title: nextTitle,
+              assignee: nextAssignee,
               completed: taskSync.completed,
+              ...(taskSync.completed && existingTask.dueDate !== 'Selesai' ? { dueDate: 'Selesai' } : {}),
             };
             changed = true;
           }
@@ -1324,38 +1895,27 @@ export default function App() {
       }
     }
 
+    const extraUpserts: DocItem[] = [];
+    if (syncedTargetDoc) extraUpserts.push(syncedTargetDoc);
+    if (syncedEvalDoc) extraUpserts.push(syncedEvalDoc);
+
     updateDocs(
       (prev) => {
         let next = prev.some((d) => d.id === PRODUCTIVITY_DOC_ID)
           ? prev.map((d) => (d.id === PRODUCTIVITY_DOC_ID ? mergedProdDoc : d))
           : [...prev, mergedProdDoc];
-        if (syncedTargetDoc) {
-          next = next.map((d) => (d.id === syncedTargetDoc!.id ? syncedTargetDoc! : d));
-        }
-        if (syncedEvalDoc) {
-          const hasEval = next.some((d) => d.id === EVALUATION_DOC_ID);
-          next = hasEval
-            ? next.map((d) => (d.id === EVALUATION_DOC_ID ? syncedEvalDoc! : d))
-            : [...next, syncedEvalDoc];
+        for (const extra of extraUpserts) {
+          const exists = next.some((d) => d.id === extra.id);
+          next = exists ? next.map((d) => (d.id === extra.id ? extra : d)) : [...next, extra];
         }
         return next;
       },
       PRODUCTIVITY_DOC_ID,
       undefined,
       { type: 'upsert', doc: mergedProdDoc },
-      true
+      true,
+      extraUpserts
     );
-
-    [syncedTargetDoc, syncedEvalDoc].forEach((extraDoc) => {
-      if (!extraDoc) return;
-      collabManagerRef.current?.sendDocUpsert(extraDoc);
-      saveDocToFirestore(extraDoc).catch(() => {});
-      fetch('/api/docs/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mutation: { type: 'upsert', doc: extraDoc } }),
-      }).catch(() => {});
-    });
   };
 
   // Lock & encrypt a document using the provided password
@@ -1634,19 +2194,26 @@ export default function App() {
       try {
         const parsed = JSON.parse(e.target?.result as string);
         if (Array.isArray(parsed)) {
-          setDocs(parsed);
-          saveStoredDocs(parsed);
-          fetch('/api/docs/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docs: parsed }),
-          }).catch(() => {});
-          alert('Cadangan workspace berhasil diimpor & disinkronkan!');
+          const now = Date.now();
+          const imported = migrateDocs(
+            parsed.map((item: DocItem) => ({
+              ...item,
+              updatedAt: Math.max(item.updatedAt || 0, now),
+            }))
+          );
+          imported.forEach((d) => pendingUpsertsRef.current.set(d.id, d.updatedAt || now));
+          pendingDeletesRef.current.clear();
+          docsRef.current = imported;
+          setDocs(imported);
+          saveStoredDocs(imported);
+          triggerServerSync(imported, undefined, true);
+          collabManagerRef.current?.requestInitialSync();
+          showTransientNotice('success', 'Cadangan workspace berhasil diimpor & disinkronkan ke semua perangkat.');
         } else {
-          alert('Format berkas cadangan tidak sesuai.');
+          showTransientNotice('error', 'Format berkas cadangan tidak sesuai.');
         }
       } catch {
-        alert('Gagal membaca berkas JSON.');
+        showTransientNotice('error', 'Gagal membaca berkas JSON.');
       }
     };
     reader.readAsText(file);
@@ -1654,58 +2221,77 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-slate-950 font-sans">
-      {/* Sidebar Navigation (with Mobile Drawer Slide-over) */}
-      <Sidebar
-        docs={visibleDocs}
-        activeDocId={activeDocId}
-        activeView={activeView}
-        lang={lang}
-        syncState={syncState}
-        collaborators={collaborators}
-        isOpenMobile={isOpenMobileSidebar}
-        onCloseMobile={() => setIsOpenMobileSidebar(false)}
-        onSelectDoc={handleSelectDoc}
-        onSelectView={setActiveView}
-        onCreateDoc={handleCreateDoc}
-        onDeleteDoc={handleDeleteDoc}
-        onDuplicateDoc={handleDuplicateDoc}
-        onToggleFavorite={handleToggleFavorite}
-        onManualSync={handleManualSyncNow}
-        userProfile={userProfile}
-        onOpenNotificationModal={() => setShowNotificationModal(true)}
-      />
-
-      {/* Main Viewport Container */}
-      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden pb-14 md:pb-0">
-        {/* Top Header Bar */}
-        <TopBar
-          activeDoc={activeDoc}
+      {/* Sidebar Navigation (Hidden during Focus Mode) */}
+      {!isEditorFocusActive && (
+        <Sidebar
           docs={visibleDocs}
+          activeDocId={activeDocId}
           activeView={activeView}
-          theme={theme}
           lang={lang}
+          syncState={syncState}
           collaborators={collaborators}
-          isVaultUnlocked={isVaultUnlocked}
-          unreadRemindersCount={unreadRemindersCount}
-          isSyncing={syncState.isSyncing}
-          isOnline={syncState.isOnline}
-          userProfile={userProfile}
-          onUpdateUserProfile={handleUpdateUserProfile}
-          onManualSync={handleManualSyncNow}
-          onToggleMobileSidebar={() => setIsOpenMobileSidebar(!isOpenMobileSidebar)}
+          isOpenMobile={isOpenMobileSidebar}
+          onCloseMobile={() => setIsOpenMobileSidebar(false)}
           onSelectDoc={handleSelectDoc}
           onSelectView={setActiveView}
-          onToggleTheme={setTheme}
-          onToggleLanguage={setLang}
-          onOpenEncryptionModal={() => setShowEncryptionModal(true)}
+          onCreateDoc={handleCreateDoc}
+          onDeleteDoc={handleDeleteDoc}
+          onDuplicateDoc={handleDuplicateDoc}
+          onToggleFavorite={handleToggleFavorite}
+          onManualSync={handleManualSyncNow}
+          userProfile={userProfile}
           onOpenNotificationModal={() => setShowNotificationModal(true)}
-          onExportMarkdown={handleExportMarkdown}
-          onExportJson={handleExportJson}
-          onImportJson={handleImportJson}
         />
+      )}
+
+      {/* Main Viewport Container */}
+      <div
+        className={`flex-1 flex flex-col h-screen min-w-0 overflow-hidden ${
+          isEditorFocusActive ? 'pb-0' : 'pb-14 md:pb-0'
+        }`}
+      >
+        {/* Top Header Bar (Hidden during Focus Mode) */}
+        {!isEditorFocusActive && (
+          <TopBar
+            activeDoc={activeDoc}
+            docs={visibleDocs}
+            activeView={activeView}
+            theme={theme}
+            lang={lang}
+            collaborators={collaborators}
+            isVaultUnlocked={isVaultUnlocked}
+            unreadRemindersCount={unreadRemindersCount}
+            isSyncing={syncState.isSyncing}
+            isOnline={syncState.isOnline}
+            userProfile={userProfile}
+            onUpdateUserProfile={handleUpdateUserProfile}
+            onManualSync={handleManualSyncNow}
+            onToggleMobileSidebar={() => setIsOpenMobileSidebar(!isOpenMobileSidebar)}
+            onSelectDoc={handleSelectDoc}
+            onSelectView={setActiveView}
+            onToggleTheme={setTheme}
+            onToggleLanguage={setLang}
+            onOpenEncryptionModal={() => setShowEncryptionModal(true)}
+            onOpenNotificationModal={() => setShowNotificationModal(true)}
+            onExportMarkdown={handleExportMarkdown}
+            onExportJson={handleExportJson}
+            onImportJson={handleImportJson}
+          />
+        )}
 
         {/* View Routing */}
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {importNotice && (
+            <div
+              className={`fixed bottom-16 md:bottom-5 right-5 z-50 px-4 py-2.5 rounded-[6px] border text-xs font-medium shadow-lg transition-all ${
+                importNotice.type === 'success'
+                  ? 'bg-[#EAF0EB] dark:bg-[#1D2B22] border-[#C5D6C9] dark:border-[#2E4636] text-[#282925] dark:text-[#EDEDE8]'
+                  : 'bg-rose-50 dark:bg-rose-950/80 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-200'
+              }`}
+            >
+              {importNotice.message}
+            </div>
+          )}
           {activeView === 'overview' && (
             <WorkspaceOverview
               docs={visibleDocs}
@@ -1738,6 +2324,10 @@ export default function App() {
                 handleUnlockDocWithPassword(activeDoc.id, passphrase, { permanent })
               }
               onRelockDoc={() => handleRelockDocSession(activeDoc.id)}
+              isFocusMode={isEditorFocusActive}
+              autoFocusOnType={autoFocusOnType}
+              onSetFocusMode={setIsFocusMode}
+              onToggleAutoFocusOnType={() => setAutoFocusOnType((prev) => !prev)}
             />
           )}
 
@@ -1850,95 +2440,97 @@ export default function App() {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation Bar (< md) for fast view switching */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-[#121211]/95 backdrop-blur-md border-t border-[#EAEAE5] dark:border-[#2B2B28] z-30 flex items-center justify-around px-1">
-        <button
-          onClick={() => setActiveView('overview')}
-          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'overview'
-              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
-              : 'text-[#777973]'
-          }`}
-        >
-          <Home size={16} />
-          <span>Ringkasan</span>
-        </button>
+      {/* Mobile Bottom Navigation Bar (< md) (Hidden during Focus Mode) */}
+      {!isEditorFocusActive && (
+        <nav className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-white/95 dark:bg-[#121211]/95 backdrop-blur-md border-t border-[#EAEAE5] dark:border-[#2B2B28] z-30 flex items-center justify-around px-1">
+          <button
+            onClick={() => setActiveView('overview')}
+            className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+              activeView === 'overview'
+                ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+                : 'text-[#777973]'
+            }`}
+          >
+            <Home size={16} />
+            <span>Ringkasan</span>
+          </button>
 
-        <button
-          onClick={() => {
-            setActiveView('editor');
-            if (!activeDocId && visibleDocs[0]) setActiveDocId(visibleDocs[0].id);
-          }}
-          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'editor'
-              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
-              : 'text-[#777973]'
-          }`}
-        >
-          <FileText size={16} />
-          <span>Catatan</span>
-        </button>
+          <button
+            onClick={() => {
+              setActiveView('editor');
+              if (!activeDocId && visibleDocs[0]) setActiveDocId(visibleDocs[0].id);
+            }}
+            className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+              activeView === 'editor'
+                ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+                : 'text-[#777973]'
+            }`}
+          >
+            <FileText size={16} />
+            <span>Catatan</span>
+          </button>
 
-        <button
-          onClick={() => setActiveView('database_table')}
-          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'database_table'
-              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
-              : 'text-[#777973]'
-          }`}
-        >
-          <Table size={16} />
-          <span>Tabel</span>
-        </button>
+          <button
+            onClick={() => setActiveView('database_table')}
+            className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+              activeView === 'database_table'
+                ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+                : 'text-[#777973]'
+            }`}
+          >
+            <Table size={16} />
+            <span>Tabel</span>
+          </button>
 
-        <button
-          onClick={() => setActiveView('database_board')}
-          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'database_board'
-              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
-              : 'text-[#777973]'
-          }`}
-        >
-          <Kanban size={16} />
-          <span>Kanban</span>
-        </button>
+          <button
+            onClick={() => setActiveView('database_board')}
+            className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+              activeView === 'database_board'
+                ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+                : 'text-[#777973]'
+            }`}
+          >
+            <Kanban size={16} />
+            <span>Kanban</span>
+          </button>
 
-        <button
-          onClick={() => setActiveView('database_calendar')}
-          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'database_calendar'
-              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
-              : 'text-[#777973]'
-          }`}
-        >
-          <CalendarIcon size={16} />
-          <span>Kalender</span>
-        </button>
+          <button
+            onClick={() => setActiveView('database_calendar')}
+            className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+              activeView === 'database_calendar'
+                ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+                : 'text-[#777973]'
+            }`}
+          >
+            <CalendarIcon size={16} />
+            <span>Kalender</span>
+          </button>
 
-        <button
-          onClick={() => setActiveView('evaluasi')}
-          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'evaluasi'
-              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
-              : 'text-[#777973]'
-          }`}
-        >
-          <ChartNoAxesCombined size={16} />
-          <span>Evaluasi</span>
-        </button>
+          <button
+            onClick={() => setActiveView('evaluasi')}
+            className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+              activeView === 'evaluasi'
+                ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+                : 'text-[#777973]'
+            }`}
+          >
+            <ChartNoAxesCombined size={16} />
+            <span>Evaluasi</span>
+          </button>
 
-        <button
-          onClick={() => setActiveView('produktif')}
-          className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
-            activeView === 'produktif'
-              ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
-              : 'text-[#777973]'
-          }`}
-        >
-          <CalendarCheck2 size={16} />
-          <span>Produktif</span>
-        </button>
-      </nav>
+          <button
+            onClick={() => setActiveView('produktif')}
+            className={`flex flex-col items-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-medium transition-colors ${
+              activeView === 'produktif'
+                ? 'text-[#282925] dark:text-[#EDEDE8] font-bold'
+                : 'text-[#777973]'
+            }`}
+          >
+            <CalendarCheck2 size={16} />
+            <span>Produktif</span>
+          </button>
+        </nav>
+      )}
 
       {/* Encryption & Vault Modal */}
       <EncryptionModal

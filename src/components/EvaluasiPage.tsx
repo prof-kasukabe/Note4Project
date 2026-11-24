@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ChevronDown, 
   Plus, 
@@ -50,6 +50,21 @@ export const EvaluasiPage: React.FC<EvaluasiPageProps> = ({
 }) => {
   const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>(evaluationData.period || 'November 2026');
+
+  useEffect(() => {
+    if (evaluationData.period) {
+      setSelectedPeriod(evaluationData.period);
+    }
+  }, [evaluationData.period]);
+
+  useEffect(() => {
+    if (
+      selectedProjectFilter !== 'all' &&
+      !evaluationData.projects.some((p) => p.name === selectedProjectFilter)
+    ) {
+      setSelectedProjectFilter('all');
+    }
+  }, [evaluationData.projects, selectedProjectFilter]);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
   const [exportToast, setExportToast] = useState(false);
